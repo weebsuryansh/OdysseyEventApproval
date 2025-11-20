@@ -49,7 +49,63 @@ function LoginPane({ onLogin }) {
         {error && <div className="error">{error}</div>}
         <button type="submit">Sign in</button>
       </form>
-      <p className="hint">Default accounts: admin/admin123, dev/dev123, student/student123, sa/sa123, faculty/faculty123, dean/dean123</p>
+      <p className="hint">
+        Default accounts are created at startup with password set to &lt;username&gt;123. Examples: admin/admin123, dev/dev123,
+        student/student123, sa/sa123, faculty/faculty123, dean/dean123.
+      </p>
+    </div>
+  )
+}
+
+function ChangePasswordCard() {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setMessage('')
+    if (newPassword !== confirm) {
+      setError('New passwords do not match')
+      return
+    }
+    try {
+      await api('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      setMessage('Password updated. Use the new password next time you sign in.')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirm('')
+    } catch (err) {
+      setError('Could not update password. Double-check your current password and try again.')
+    }
+  }
+
+  return (
+    <div className="panel">
+      <h2>Change password</h2>
+      <form className="stack" onSubmit={submit}>
+        <label>
+          Current password
+          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+        </label>
+        <label>
+          New password
+          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+        </label>
+        <label>
+          Confirm new password
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+        </label>
+        {error && <div className="error">{error}</div>}
+        {message && <div className="success">{message}</div>}
+        <button type="submit">Update password</button>
+      </form>
     </div>
   )
 }
@@ -266,7 +322,8 @@ function DevHelp() {
     <div className="panel info">
       <h2>Developer shortcuts</h2>
       <p>
-        Use these sample accounts to exercise every stage without creating data manually. Each role will see their tailored dashboard after login.
+        Use these sample accounts to exercise every stage without creating data manually. Each role will see their tailored dashboard after login. All
+        default passwords follow the &lt;username&gt;123 convention.
       </p>
       <ul>
         <li>Student: student / student123</li>
@@ -348,6 +405,7 @@ function App() {
       </header>
       <main>
         {content}
+        {user && <ChangePasswordCard />}
         {user?.role === 'DEV' && <DevHelp />}
       </main>
     </div>

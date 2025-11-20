@@ -4,8 +4,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.example.odysseyeventapproval.dto.AuthRequest;
 import org.example.odysseyeventapproval.dto.AuthResponse;
+import org.example.odysseyeventapproval.dto.PasswordChangeRequest;
 import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.repository.UserRepository;
+import org.example.odysseyeventapproval.service.PasswordService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,10 +20,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
+    private final PasswordService passwordService;
 
-    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository) {
+    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, PasswordService passwordService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
+        this.passwordService = passwordService;
     }
 
     @PostMapping("/login")
@@ -55,5 +60,11 @@ public class AuthController {
             session.invalidate();
         }
         SecurityContextHolder.clearContext();
+    }
+
+    @PostMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@RequestBody PasswordChangeRequest request) {
+        passwordService.changeOwnPassword(request.getCurrentPassword(), request.getNewPassword());
     }
 }

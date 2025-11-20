@@ -12,12 +12,12 @@ public class DataInitializer {
     @Bean
     ApplicationRunner seedDefaults(UserAdminService userAdminService) {
         return args -> {
-            createIfMissing(userAdminService, "admin", "Administrator", "admin123", UserRole.ADMIN);
-            createIfMissing(userAdminService, "dev", "Developer", "dev123", UserRole.DEV);
-            createIfMissing(userAdminService, "student", "Student One", "student123", UserRole.STUDENT);
-            createIfMissing(userAdminService, "sa", "SA Office", "sa123", UserRole.SA_OFFICE);
-            createIfMissing(userAdminService, "faculty", "Faculty Coordinator", "faculty123", UserRole.FACULTY_COORDINATOR);
-            createIfMissing(userAdminService, "dean", "Dean", "dean123", UserRole.DEAN);
+            createIfMissing(userAdminService, "admin", "Administrator", defaultPassword("admin"), UserRole.ADMIN);
+            createIfMissing(userAdminService, "dev", "Developer", defaultPassword("dev"), UserRole.DEV);
+            createIfMissing(userAdminService, "student", "Student One", defaultPassword("student"), UserRole.STUDENT);
+            createIfMissing(userAdminService, "sa", "SA Office", defaultPassword("sa"), UserRole.SA_OFFICE);
+            createIfMissing(userAdminService, "faculty", "Faculty Coordinator", defaultPassword("faculty"), UserRole.FACULTY_COORDINATOR);
+            createIfMissing(userAdminService, "dean", "Dean", defaultPassword("dean"), UserRole.DEAN);
         };
     }
 
@@ -35,5 +35,9 @@ public class DataInitializer {
         request.setPassword(password);
         request.setRole(role);
         return request;
+    }
+
+    private String defaultPassword(String username) {
+        return username + "123";
     }
 }
