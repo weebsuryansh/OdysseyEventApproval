@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+
 const api = async (url, options = {}) => {
-  const response = await fetch(url, {
+  const target = url.startsWith('http') ? url : `${API_BASE}${url}`
+  const response = await fetch(target, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     ...options,
