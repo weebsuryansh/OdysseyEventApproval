@@ -53,8 +53,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(HttpServletRequest request) {
-        request.getSession(false);
         var session = request.getSession(false);
         if (session != null) {
             session.invalidate();
