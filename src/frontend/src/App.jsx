@@ -18,6 +18,11 @@ const api = async (url, options = {}) => {
   return response.json()
 }
 
+function Banner({ status }) {
+  if (!status?.text) return null
+  return <div className={`banner ${status.type}`}>{status.text}</div>
+}
+
 function LoginPane({ onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -117,11 +122,21 @@ function StudentDashboard({ refreshSignal }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [events, setEvents] = useState([])
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState({ type: '', text: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const load = async () => {
-    const data = await api('/api/events/mine')
-    setEvents(data)
+    setLoading(true)
+    try {
+      const data = await api('/api/events/mine')
+      setEvents(data)
+      setMessage({ type: '', text: '' })
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Could not load your requests. Please try again.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -130,15 +145,22 @@ function StudentDashboard({ refreshSignal }) {
 
   const submit = async (e) => {
     e.preventDefault()
-    setMessage('')
-    await api('/api/events', {
-      method: 'POST',
-      body: JSON.stringify({ title, description }),
-    })
-    setTitle('')
-    setDescription('')
-    setMessage('Submitted for SA Office review')
-    load()
+    setSubmitting(true)
+    setMessage({ type: '', text: '' })
+    try {
+      await api('/api/events', {
+        method: 'POST',
+        body: JSON.stringify({ title, description }),
+      })
+      setTitle('')
+      setDescription('')
+      setMessage({ type: 'success', text: 'Submitted for SA Office review.' })
+      load()
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Could not submit event.' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -153,11 +175,13 @@ function StudentDashboard({ refreshSignal }) {
           Description
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} required />
         </label>
-        <button type="submit">Submit</button>
-        {message && <div className="success">{message}</div>}
+        <button type="submit" disabled={submitting}>
+          {submitting ? 'Submitting...' : 'Submit'}
+        </button>
+        <Banner status={message} />
       </form>
       <h3>My requests</h3>
-      <EventTable events={events} showStudent={false} />
+      {loading ? <p className="muted">Loading your requests...</p> : <EventTable events={events} showStudent={false} />}
     </div>
   )
 }
@@ -165,6 +189,8 @@ function StudentDashboard({ refreshSignal }) {
 function ApprovalDashboard({ role }) {
   const [events, setEvents] = useState([])
   const [remarks, setRemarks] = useState({})
+  const [message, setMessage] = useState({ type: '', text: '' })
+  const [working, setWorking] = useState(false)
 
   const load = async () => {
     const data = await api('/api/events/pending')
@@ -176,16 +202,26 @@ function ApprovalDashboard({ role }) {
   }, [])
 
   const act = async (id, approve) => {
-    await api(`/api/events/${id}/decision`, {
-      method: 'POST',
-      body: JSON.stringify({ approve, remark: remarks[id] || '' }),
-    })
-    load()
+    setWorking(true)
+    setMessage({ type: '', text: '' })
+    try {
+      await api(`/api/events/${id}/decision`, {
+        method: 'POST',
+        body: JSON.stringify({ approve, remark: remarks[id] || '' }),
+      })
+      setMessage({ type: 'success', text: approve ? 'Request approved.' : 'Request declined.' })
+      load()
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Action failed. Please try again.' })
+    } finally {
+      setWorking(false)
+    }
   }
 
   return (
     <div className="panel">
       <h2>{role.replace('_', ' ')} queue</h2>
+      <Banner status={message} />
       {events.map((ev) => (
         <div key={ev.id} className="card">
           <div className="card-header">
@@ -200,8 +236,10 @@ function ApprovalDashboard({ role }) {
             onChange={(e) => setRemarks({ ...remarks, [ev.id]: e.target.value })}
           />
           <div className="actions">
-            <button onClick={() => act(ev.id, true)}>Approve</button>
-            <button className="danger" onClick={() => act(ev.id, false)}>
+            <button disabled={working} onClick={() => act(ev.id, true)}>
+              {working ? 'Working...' : 'Approve'}
+            </button>
+            <button className="danger" disabled={working} onClick={() => act(ev.id, false)}>
               Decline
             </button>
           </div>
@@ -218,10 +256,18 @@ function AdminDashboard() {
   const [eventId, setEventId] = useState('')
   const [status, setStatus] = useState('APPROVED')
   const [remark, setRemark] = useState('')
+  const [loadMessage, setLoadMessage] = useState({ type: '', text: '' })
+  const [createMessage, setCreateMessage] = useState({ type: '', text: '' })
+  const [overrideMessage, setOverrideMessage] = useState({ type: '', text: '' })
 
   const load = async () => {
-    const data = await api('/api/admin/users')
-    setUsers(data)
+    try {
+      const data = await api('/api/admin/users')
+      setUsers(data)
+      setLoadMessage({ type: '', text: '' })
+    } catch (err) {
+      setLoadMessage({ type: 'error', text: 'Could not load users. Make sure you are signed in as an admin.' })
+    }
   }
 
   useEffect(() => {
@@ -230,19 +276,31 @@ function AdminDashboard() {
 
   const submit = async (e) => {
     e.preventDefault()
-    await api('/api/admin/users', {
-      method: 'POST',
-      body: JSON.stringify(form),
-    })
-    setForm({ username: '', displayName: '', password: '', role: 'STUDENT' })
-    load()
+    setCreateMessage({ type: '', text: '' })
+    try {
+      await api('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(form),
+      })
+      setForm({ username: '', displayName: '', password: '', role: 'STUDENT' })
+      setCreateMessage({ type: 'success', text: 'User created successfully.' })
+      load()
+    } catch (err) {
+      setCreateMessage({ type: 'error', text: err.message || 'Could not create user.' })
+    }
   }
 
   const override = async (e) => {
     e.preventDefault()
-    await api(`/api/admin/events/${eventId}/override?status=${status}&remark=${encodeURIComponent(remark)}`, { method: 'POST' })
-    setEventId('')
-    setRemark('')
+    setOverrideMessage({ type: '', text: '' })
+    try {
+      await api(`/api/admin/events/${eventId}/override?status=${status}&remark=${encodeURIComponent(remark)}`, { method: 'POST' })
+      setEventId('')
+      setRemark('')
+      setOverrideMessage({ type: 'success', text: 'Override applied.' })
+    } catch (err) {
+      setOverrideMessage({ type: 'error', text: err.message || 'Override failed.' })
+    }
   }
 
   return (
@@ -272,6 +330,7 @@ function AdminDashboard() {
             </select>
           </label>
           <button type="submit">Create</button>
+          <Banner status={createMessage} />
         </form>
         <div className="stack">
           <h3>Override event</h3>
@@ -292,10 +351,12 @@ function AdminDashboard() {
               <input value={remark} onChange={(e) => setRemark(e.target.value)} />
             </label>
             <button type="submit">Apply override</button>
+            <Banner status={overrideMessage} />
           </form>
         </div>
       </div>
       <h3>All users</h3>
+      <Banner status={loadMessage} />
       <table className="user-table">
         <thead>
           <tr>
