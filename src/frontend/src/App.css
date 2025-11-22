@@ -85,6 +85,11 @@ button:hover {
   background: #1d4ed8;
 }
 
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
 button.danger {
   background: #dc2626;
 }
@@ -101,6 +106,25 @@ button.danger:hover {
 .success {
   color: #16a34a;
   font-weight: 600;
+}
+
+.banner {
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.banner.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.banner.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecdd3;
 }
 
 .hint, .muted {
