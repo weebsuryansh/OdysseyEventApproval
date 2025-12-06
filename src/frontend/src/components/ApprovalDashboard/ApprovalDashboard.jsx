@@ -21,6 +21,11 @@ function ApprovalDashboard({ role }) {
   const act = async (id, approve) => {
     setWorking(true)
     setMessage({ type: '', text: '' })
+    if (!approve && !remarks[id]?.trim()) {
+      setWorking(false)
+      setMessage({ type: 'error', text: 'Please add a remark before declining.' })
+      return
+    }
     try {
       await api(`/api/events/${id}/decision`, {
         method: 'POST',

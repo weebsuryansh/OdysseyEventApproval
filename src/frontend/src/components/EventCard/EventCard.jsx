@@ -3,9 +3,9 @@ import './EventCard.scss'
 
 function EventCard({ event }) {
   const steps = [
-    { label: 'SA Office', value: event.saStatus },
-    { label: 'Faculty', value: event.facultyStatus },
-    { label: 'Dean', value: event.deanStatus },
+    { label: 'SA Office', value: event.saStatus, remark: event.saRemark },
+    { label: 'Faculty', value: event.facultyStatus, remark: event.facultyRemark },
+    { label: 'Dean', value: event.deanStatus, remark: event.deanRemark },
   ]
 
   return (
@@ -20,7 +20,7 @@ function EventCard({ event }) {
       <p className="muted description">{event.description}</p>
       <div className="status-row">
         {steps.map((step) => (
-          <EventStatusPill key={step.label} label={step.label} status={step.value} />
+          <EventStatusPill key={step.label} label={step.label} status={step.value} remark={step.remark} />
         ))}
       </div>
       <div className="progress" data-stage={event.stage}></div>
