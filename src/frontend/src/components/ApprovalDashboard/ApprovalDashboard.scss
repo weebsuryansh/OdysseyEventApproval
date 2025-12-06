@@ -1,0 +1,11 @@
+.queue-card {
+  border: 1px solid var(--border-subtle);
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: var(--surface-muted);
+}
+
+.queue-card textarea {
+  min-height: 60px;
+}

@@ -1,0 +1,48 @@
+.tab-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 94px;
+  height: max-content;
+}
+
+.tab-bottom {
+  display: none;
+}
+
+.tab-btn {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  text-align: left;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--card-shadow);
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #2563eb, #6366f1);
+  color: white;
+  border-color: transparent;
+}
+
+@media (max-width: 900px) {
+  .tab-sidebar {
+    display: none;
+  }
+
+  .tab-bottom {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    position: sticky;
+    bottom: 10px;
+    background: transparent;
+  }
+
+  .tab-btn {
+    text-align: center;
+  }
+}
