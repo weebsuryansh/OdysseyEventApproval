@@ -1,0 +1,19 @@
+.student-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .student-layout {
+    grid-template-columns: 1fr;
+  }
+}

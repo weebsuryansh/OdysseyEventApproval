@@ -1,0 +1,17 @@
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input-with-button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.password-field span {
+  display: block;
+  margin-bottom: 6px;
+}
