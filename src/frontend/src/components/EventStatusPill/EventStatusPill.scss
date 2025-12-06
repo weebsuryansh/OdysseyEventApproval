@@ -1,37 +1,76 @@
 .status-pill {
-  padding: 8px 12px;
-  border-radius: 999px;
+  padding: 12px;
+  border-radius: 14px;
   background: var(--surface-muted);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-size: 13px;
-  text-transform: capitalize;
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  gap: 6px;
+  width: 100%;
+  min-height: 80px;
+}
+
+.status-pill__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .status-pill strong {
   font-size: 13px;
 }
 
+.status-pill__state {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: capitalize;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+}
+
 .status-pill .remark {
-  font-weight: 400;
+  font-weight: 500;
   color: var(--text-muted);
+  line-height: 1.4;
 }
 
 .status-pill.approved {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--status-success-bg);
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+}
+
+.status-pill.approved .status-pill__state {
+  background: color-mix(in srgb, var(--status-success-bg) 70%, var(--surface));
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
 }
 
 .status-pill.rejected {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
+  color: var(--status-danger-text);
+}
+
+.status-pill.rejected .status-pill__state {
+  background: color-mix(in srgb, var(--status-danger-bg) 70%, var(--surface));
+  border-color: var(--status-danger-border);
+  color: var(--status-danger-text);
 }
 
 .status-pill.pending {
-  background: #e0f2fe;
-  color: #075985;
+  background: var(--status-info-bg);
+  border-color: var(--status-info-border);
+  color: var(--status-info-text);
+}
+
+.status-pill.pending .status-pill__state {
+  background: color-mix(in srgb, var(--status-info-bg) 70%, var(--surface));
+  border-color: var(--status-info-border);
+  color: var(--status-info-text);
 }

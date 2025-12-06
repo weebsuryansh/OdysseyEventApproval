@@ -10,6 +10,15 @@
   --accent: #2563eb;
   --accent-contrast: #ffffff;
   --card-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  --status-success-bg: #ecfdf3;
+  --status-success-border: #bbf7d0;
+  --status-success-text: #166534;
+  --status-danger-bg: #fef2f2;
+  --status-danger-border: #fecdd3;
+  --status-danger-text: #b91c1c;
+  --status-info-bg: #e0f2fe;
+  --status-info-border: #bfdbfe;
+  --status-info-text: #1d4ed8;
 }
 
 [data-theme='dark'] {
@@ -24,6 +33,15 @@
   --accent: #60a5fa;
   --accent-contrast: #0b1220;
   --card-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --status-success-bg: rgba(22, 163, 74, 0.16);
+  --status-success-border: rgba(74, 222, 128, 0.6);
+  --status-success-text: #bbf7d0;
+  --status-danger-bg: rgba(248, 113, 113, 0.14);
+  --status-danger-border: rgba(248, 113, 113, 0.45);
+  --status-danger-text: #fecdd3;
+  --status-info-bg: rgba(96, 165, 250, 0.16);
+  --status-info-border: rgba(96, 165, 250, 0.5);
+  --status-info-text: #bfdbfe;
 }
 
 * {
@@ -123,14 +141,22 @@ button.danger:hover {
   font-size: 12px;
 }
 
+.badge.stage {
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+  border: 1px solid var(--status-info-border);
+}
+
 .badge.stage.approved {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  border-color: var(--status-success-border);
 }
 
 .badge.stage.rejected {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border-color: var(--status-danger-border);
 }
 
 .muted,

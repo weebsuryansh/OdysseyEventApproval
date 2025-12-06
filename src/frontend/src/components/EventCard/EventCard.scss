@@ -29,10 +29,10 @@
 }
 
 .status-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 4px 0 2px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 6px 0 2px;
 }
 
 .progress {
