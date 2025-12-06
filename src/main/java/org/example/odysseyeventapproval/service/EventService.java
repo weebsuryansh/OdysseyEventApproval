@@ -29,6 +29,10 @@ public class EventService {
         return eventRepository.findByStudent(student);
     }
 
+    public List<Event> listAll() {
+        return eventRepository.findAll();
+    }
+
     public List<Event> listPendingForRole(UserRole role) {
         return switch (role) {
             case SA_OFFICE -> eventRepository.findByStage(EventStage.SA_REVIEW);

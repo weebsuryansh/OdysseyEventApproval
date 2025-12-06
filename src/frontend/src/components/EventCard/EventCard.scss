@@ -1,0 +1,65 @@
+.event-card {
+  padding: 18px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.event-card h3 {
+  margin: 4px 0 8px;
+}
+
+.event-card .muted {
+  margin: 0;
+}
+
+.description {
+  word-break: break-word;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 2px;
+}
+
+.progress {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 33%;
+  background: linear-gradient(90deg, #2563eb, #6366f1);
+  transition: width 0.3s ease;
+}
+
+.progress[data-stage='FACULTY_REVIEW']::after {
+  width: 66%;
+}
+
+.progress[data-stage='DEAN_REVIEW']::after,
+.progress[data-stage='APPROVED']::after,
+.progress[data-stage='REJECTED']::after {
+  width: 100%;
+}
