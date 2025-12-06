@@ -1,3 +1,17 @@
+.admin-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.override-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
 .table-wrapper {
   overflow-x: auto;
 }
@@ -15,9 +29,48 @@
   text-align: left;
 }
 
-.override-card {
-  background: var(--surface-muted);
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.event-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+}
+
+.event-row.active {
+  border-color: #2563eb;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);
+}
+
+.event-detail .description {
+  margin: 0 0 8px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 1100px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .override-layout {
+    grid-template-columns: 1fr;
+  }
 }

@@ -47,7 +47,7 @@ function LoginPane({ onLogin }) {
               placeholder="Enter your password"
             />
             <button type="button" className="ghost compact" onClick={() => setShowPassword(!showPassword)}>
-              {showPassword ? 'Hide' : 'Show'}
+              {showPassword ? '🙈 Hide' : '👁️ Show'}
             </button>
           </div>
         </label>

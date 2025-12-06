@@ -58,9 +58,9 @@ function StudentDashboard() {
   const past = events.filter((ev) => STAGES_COMPLETE.includes(ev.stage))
 
   const tabs = [
+    { label: 'New request', value: 'new', variant: 'primary' },
     { label: 'Pending', value: 'pending' },
     { label: 'Past', value: 'past' },
-    { label: 'New request', value: 'new' },
     { label: 'Change password', value: 'password' },
   ]
 
@@ -75,7 +75,7 @@ function StudentDashboard() {
                 <p className="muted">Track each step of your submissions</p>
                 <h2>Pending requests</h2>
               </div>
-              <button className="ghost" onClick={load} disabled={loading}>
+              <button className="ghost refresh-button" onClick={load} disabled={loading}>
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>

@@ -7,6 +7,9 @@ function ChangePasswordCard() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [status, setStatus] = useState({ type: '', text: '' })
 
   const submit = async (e) => {
@@ -36,15 +39,45 @@ function ChangePasswordCard() {
       <form className="stack" onSubmit={submit}>
         <label>
           Current password
-          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+          <div className="input-with-button">
+            <input
+              type={showCurrent ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+            <button type="button" className="ghost compact" onClick={() => setShowCurrent((prev) => !prev)}>
+              {showCurrent ? '🙈 Hide' : '👁️ Show'}
+            </button>
+          </div>
         </label>
         <label>
           New password
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+          <div className="input-with-button">
+            <input
+              type={showNew ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+            <button type="button" className="ghost compact" onClick={() => setShowNew((prev) => !prev)}>
+              {showNew ? '🙈 Hide' : '👁️ Show'}
+            </button>
+          </div>
         </label>
         <label>
           Confirm new password
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+          <div className="input-with-button">
+            <input
+              type={showConfirm ? 'text' : 'password'}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+            />
+            <button type="button" className="ghost compact" onClick={() => setShowConfirm((prev) => !prev)}>
+              {showConfirm ? '🙈 Hide' : '👁️ Show'}
+            </button>
+          </div>
         </label>
         <Banner status={status} />
         <button type="submit">Update password</button>

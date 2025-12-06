@@ -39,7 +39,7 @@ function ApprovalDashboard({ role }) {
     <div className="panel card-surface">
       <div className="panel-header">
         <h2>{role.replace('_', ' ')} queue</h2>
-        <button className="ghost" onClick={load} disabled={working}>
+        <button className="ghost refresh-button" onClick={load} disabled={working}>
           {working ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>

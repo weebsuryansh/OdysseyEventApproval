@@ -11,6 +11,9 @@ import org.example.odysseyeventapproval.service.UserAdminService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -40,6 +43,12 @@ public class AdminController {
     @PreAuthorize("hasAnyRole('ADMIN','DEV')")
     public EventResponse override(@PathVariable Long id, @RequestParam DecisionStatus status, @RequestParam(required = false) String remark) {
         return EventResponse.from(eventService.overrideDecision(id, status, remark));
+    }
+
+    @GetMapping("/events")
+    @PreAuthorize("hasAnyRole('ADMIN','DEV')")
+    public List<EventResponse> allEvents() {
+        return eventService.listAll().stream().map(EventResponse::from).collect(Collectors.toList());
     }
 
     @GetMapping("/users")

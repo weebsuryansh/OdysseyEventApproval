@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import AdminDashboard from '../AdminDashboard/AdminDashboard'
 import ApprovalDashboard from '../ApprovalDashboard/ApprovalDashboard'
-import ChangePasswordCard from '../ChangePasswordCard/ChangePasswordCard'
 import DevHelp from '../DevHelp/DevHelp'
 import Header from '../Header/Header'
 import LoginPane from '../LoginPane/LoginPane'
@@ -51,13 +50,7 @@ function App() {
       )
     if (user.role === 'STUDENT') return <StudentDashboard />
     if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role)) return <ApprovalDashboard role={user.role} />
-    if (['ADMIN', 'DEV'].includes(user.role))
-      return (
-        <div className="dashboard-grid">
-          <AdminDashboard />
-          <ChangePasswordCard />
-        </div>
-      )
+    if (['ADMIN', 'DEV'].includes(user.role)) return <AdminDashboard />
     return <div className="panel">Unknown role</div>
   }, [user])
 
