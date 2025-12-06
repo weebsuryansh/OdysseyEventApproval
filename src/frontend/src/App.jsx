@@ -18,6 +18,8 @@ const api = async (url, options = {}) => {
   return response.json()
 }
 
+const STAGES_COMPLETE = ['APPROVED', 'REJECTED']
+
 function Banner({ status }) {
   if (!status?.text) return null
   return <div className={`banner ${status.type}`}>{status.text}</div>
@@ -95,7 +97,7 @@ function ChangePasswordCard() {
   }
 
   return (
-    <div className="panel">
+    <div className="panel card-surface">
       <h2>Change password</h2>
       <form className="stack" onSubmit={submit}>
         <label>
@@ -118,6 +120,58 @@ function ChangePasswordCard() {
   )
 }
 
+function EventStatusPill({ label, status }) {
+  return <span className={`status-pill ${status?.toLowerCase() || 'pending'}`}>{label}: {status || 'Pending'}</span>
+}
+
+function EventCard({ event }) {
+  const steps = [
+    { label: 'SA Office', value: event.saStatus },
+    { label: 'Faculty', value: event.facultyStatus },
+    { label: 'Dean', value: event.deanStatus },
+  ]
+
+  return (
+    <div className="event-card card-surface">
+      <div className="card-header">
+        <div>
+          <p className="muted">Request #{event.id}</p>
+          <h3>{event.title}</h3>
+        </div>
+        <span className={`badge stage ${event.stage?.toLowerCase()}`}>{event.stage}</span>
+      </div>
+      <p className="muted">{event.description}</p>
+      <div className="status-row">
+        {steps.map((step) => (
+          <EventStatusPill key={step.label} label={step.label} status={step.value} />
+        ))}
+      </div>
+      <div className="progress" data-stage={event.stage}></div>
+    </div>
+  )
+}
+
+function TabNavigation({ tabs, active, onChange }) {
+  return (
+    <>
+      <div className="tab-sidebar">
+        {tabs.map((tab) => (
+          <button key={tab.value} className={`tab-btn ${active === tab.value ? 'active' : ''}`} onClick={() => onChange(tab.value)}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="tab-bottom">
+        {tabs.map((tab) => (
+          <button key={tab.value} className={`tab-btn ${active === tab.value ? 'active' : ''}`} onClick={() => onChange(tab.value)}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function StudentDashboard({ refreshSignal }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -125,6 +179,7 @@ function StudentDashboard({ refreshSignal }) {
   const [message, setMessage] = useState({ type: '', text: '' })
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('pending')
 
   const load = async () => {
     setLoading(true)
@@ -163,25 +218,66 @@ function StudentDashboard({ refreshSignal }) {
     }
   }
 
+  const pending = events.filter((ev) => !STAGES_COMPLETE.includes(ev.stage))
+  const past = events.filter((ev) => STAGES_COMPLETE.includes(ev.stage))
+
+  const tabs = [
+    { label: 'Pending', value: 'pending' },
+    { label: 'Past', value: 'past' },
+    { label: 'New request', value: 'new' },
+    { label: 'Change password', value: 'password' },
+  ]
+
   return (
-    <div className="panel">
-      <h2>Request new event</h2>
-      <form onSubmit={submit} className="stack">
-        <label>
-          Title
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </label>
-        <label>
-          Description
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} required />
-        </label>
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Submitting...' : 'Submit'}
-        </button>
-        <Banner status={message} />
-      </form>
-      <h3>My requests</h3>
-      {loading ? <p className="muted">Loading your requests...</p> : <EventTable events={events} showStudent={false} />}
+    <div className="student-layout">
+      <TabNavigation tabs={tabs} active={activeTab} onChange={setActiveTab} />
+      <div className="tab-content">
+        {activeTab === 'pending' && (
+          <div className="panel card-surface">
+            <div className="panel-header">
+              <div>
+                <p className="muted">Track each step of your submissions</p>
+                <h2>Pending requests</h2>
+              </div>
+              <button className="ghost" onClick={load} disabled={loading}>
+                {loading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+            {loading ? <p className="muted">Loading your requests...</p> : pending.map((ev) => <EventCard key={ev.id} event={ev} />)}
+            {!loading && pending.length === 0 && <p className="muted">No pending items right now.</p>}
+          </div>
+        )}
+
+        {activeTab === 'past' && (
+          <div className="panel card-surface">
+            <h2>Past requests</h2>
+            {loading ? <p className="muted">Loading your requests...</p> : past.map((ev) => <EventCard key={ev.id} event={ev} />)}
+            {!loading && past.length === 0 && <p className="muted">No past requests yet.</p>}
+          </div>
+        )}
+
+        {activeTab === 'new' && (
+          <div className="panel card-surface">
+            <h2>Request new event</h2>
+            <form onSubmit={submit} className="stack">
+              <label>
+                Title
+                <input value={title} onChange={(e) => setTitle(e.target.value)} required />
+              </label>
+              <label>
+                Description
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} required />
+              </label>
+              <button type="submit" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit'}
+              </button>
+              <Banner status={message} />
+            </form>
+          </div>
+        )}
+
+        {activeTab === 'password' && <ChangePasswordCard />}
+      </div>
     </div>
   )
 }
@@ -452,7 +548,13 @@ function App() {
     if (!user) return <LoginPane onLogin={(u) => setUser(u)} />
     if (user.role === 'STUDENT') return <StudentDashboard refreshSignal={refresh} />
     if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role)) return <ApprovalDashboard role={user.role} />
-    if (['ADMIN', 'DEV'].includes(user.role)) return <AdminDashboard />
+    if (['ADMIN', 'DEV'].includes(user.role))
+      return (
+        <div className="dashboard-grid">
+          <AdminDashboard />
+          <ChangePasswordCard />
+        </div>
+      )
     return <div className="panel">Unknown role</div>
   }, [user, refresh])
 
@@ -469,7 +571,6 @@ function App() {
       </header>
       <main>
         {content}
-        {user && <ChangePasswordCard />}
         {user?.role === 'DEV' && <DevHelp />}
       </main>
     </div>
