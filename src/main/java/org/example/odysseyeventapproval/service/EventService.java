@@ -61,16 +61,30 @@ public class EventService {
     }
 
     @Transactional
-    public Event overrideDecision(Long eventId, DecisionStatus status, String remark) {
+    public Event overrideDecision(Long eventId, String targetStage, DecisionStatus status, String remark) {
         Event event = eventRepository.findById(eventId).orElseThrow();
-        if (status == DecisionStatus.APPROVED) {
-            event.setStage(EventStage.APPROVED);
-        } else if (status == DecisionStatus.REJECTED) {
-            event.setStage(EventStage.REJECTED);
+        StageTarget target = StageTarget.from(targetStage);
+
+        if (status == DecisionStatus.REJECTED && (remark == null || remark.isBlank())) {
+            throw new IllegalArgumentException("Rejections require a remark");
         }
-        if (remark != null && !remark.isBlank()) {
-            event.setDeanRemark(remark);
+
+        switch (target) {
+            case SA -> {
+                event.setSaStatus(status);
+                event.setSaRemark(remark);
+            }
+            case FACULTY -> {
+                event.setFacultyStatus(status);
+                event.setFacultyRemark(remark);
+            }
+            case DEAN -> {
+                event.setDeanStatus(status);
+                event.setDeanRemark(remark);
+            }
         }
+
+        updateStageFromDecisions(event);
         event.touchUpdatedAt();
         return eventRepository.save(event);
     }
@@ -112,5 +126,36 @@ public class EventService {
         event.touchUpdatedAt();
     }
 
-    private enum StageTarget { SA, FACULTY, DEAN }
+    private void updateStageFromDecisions(Event event) {
+        if (event.getSaStatus() != DecisionStatus.APPROVED) {
+            event.setStage(event.getSaStatus() == DecisionStatus.REJECTED ? EventStage.REJECTED : EventStage.SA_REVIEW);
+            return;
+        }
+
+        if (event.getFacultyStatus() != DecisionStatus.APPROVED) {
+            event.setStage(event.getFacultyStatus() == DecisionStatus.REJECTED ? EventStage.REJECTED : EventStage.FACULTY_REVIEW);
+            return;
+        }
+
+        if (event.getDeanStatus() != DecisionStatus.APPROVED) {
+            event.setStage(event.getDeanStatus() == DecisionStatus.REJECTED ? EventStage.REJECTED : EventStage.DEAN_REVIEW);
+            return;
+        }
+
+        event.setStage(EventStage.APPROVED);
+    }
+
+    private enum StageTarget {
+        SA,
+        FACULTY,
+        DEAN;
+
+        static StageTarget from(String value) {
+            try {
+                return StageTarget.valueOf(value.toUpperCase());
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Unknown stage target: " + value);
+            }
+        }
+    }
 }

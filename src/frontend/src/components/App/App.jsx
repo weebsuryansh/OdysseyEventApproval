@@ -35,16 +35,6 @@ function App() {
     if (!user)
       return (
         <div className="auth-layout">
-          <div className="auth-hero card-surface">
-            <p className="muted">Odyssey Event Approval</p>
-            <h1>Plan, submit, and track events with confidence.</h1>
-            <p className="muted">Students, reviewers, and admins share one streamlined workspace designed to keep every request moving.</p>
-            <div className="pill-row">
-              <span className="pill">Responsive layout</span>
-              <span className="pill">Role-based flows</span>
-              <span className="pill">Secure login</span>
-            </div>
-          </div>
           <LoginPane onLogin={(u) => setUser(u)} />
         </div>
       )

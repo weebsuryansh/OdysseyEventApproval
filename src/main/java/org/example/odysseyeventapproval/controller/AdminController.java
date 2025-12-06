@@ -41,8 +41,13 @@ public class AdminController {
 
     @PostMapping("/events/{id}/override")
     @PreAuthorize("hasAnyRole('ADMIN','DEV')")
-    public EventResponse override(@PathVariable Long id, @RequestParam DecisionStatus status, @RequestParam(required = false) String remark) {
-        return EventResponse.from(eventService.overrideDecision(id, status, remark));
+    public EventResponse override(
+            @PathVariable Long id,
+            @RequestParam String target,
+            @RequestParam DecisionStatus status,
+            @RequestParam(required = false) String remark
+    ) {
+        return EventResponse.from(eventService.overrideDecision(id, target, status, remark));
     }
 
     @GetMapping("/events")

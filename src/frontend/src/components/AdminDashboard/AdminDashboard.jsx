@@ -16,6 +16,7 @@ function AdminDashboard() {
   const [users, setUsers] = useState([])
   const [form, setForm] = useState({ username: '', displayName: '', password: '', role: 'STUDENT' })
   const [status, setStatus] = useState('APPROVED')
+  const [targetStage, setTargetStage] = useState('DEAN')
   const [remark, setRemark] = useState('')
   const [loadMessage, setLoadMessage] = useState({ type: '', text: '' })
   const [createMessage, setCreateMessage] = useState({ type: '', text: '' })
@@ -80,11 +81,19 @@ function AdminDashboard() {
     e.preventDefault()
     if (!selectedEvent) return
     setOverrideMessage({ type: '', text: '' })
+    if (status === 'REJECTED' && !remark.trim()) {
+      setOverrideMessage({ type: 'error', text: 'Remark is required when rejecting.' })
+      return
+    }
     try {
-      await api(`/api/admin/events/${selectedEvent.id}/override?status=${status}&remark=${encodeURIComponent(remark)}`, {
-        method: 'POST',
-      })
+      await api(
+        `/api/admin/events/${selectedEvent.id}/override?target=${targetStage}&status=${status}&remark=${encodeURIComponent(remark)}`,
+        {
+          method: 'POST',
+        }
+      )
       setRemark('')
+      setTargetStage('DEAN')
       setOverrideMessage({ type: 'success', text: 'Override applied.' })
       loadEvents()
     } catch (err) {
@@ -226,6 +235,14 @@ function AdminDashboard() {
 
                   <form className="stack" onSubmit={override}>
                     <h3>Override decision</h3>
+                    <label>
+                      Stage
+                      <select value={targetStage} onChange={(e) => setTargetStage(e.target.value)}>
+                        <option value="SA">SA Office</option>
+                        <option value="FACULTY">Faculty</option>
+                        <option value="DEAN">Dean</option>
+                      </select>
+                    </label>
                     <label>
                       Status
                       <select value={status} onChange={(e) => setStatus(e.target.value)}>
