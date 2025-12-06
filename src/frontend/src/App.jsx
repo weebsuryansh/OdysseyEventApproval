@@ -18,6 +18,13 @@ const api = async (url, options = {}) => {
   return response.json()
 }
 
+const STAGES_COMPLETE = ['APPROVED', 'REJECTED']
+
+function Banner({ status }) {
+  if (!status?.text) return null
+  return <div className={`banner ${status.type}`}>{status.text}</div>
+}
+
 function LoginPane({ onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -90,7 +97,7 @@ function ChangePasswordCard() {
   }
 
   return (
-    <div className="panel">
+    <div className="panel card-surface">
       <h2>Change password</h2>
       <form className="stack" onSubmit={submit}>
         <label>
@@ -113,15 +120,78 @@ function ChangePasswordCard() {
   )
 }
 
+function EventStatusPill({ label, status }) {
+  return <span className={`status-pill ${status?.toLowerCase() || 'pending'}`}>{label}: {status || 'Pending'}</span>
+}
+
+function EventCard({ event }) {
+  const steps = [
+    { label: 'SA Office', value: event.saStatus },
+    { label: 'Faculty', value: event.facultyStatus },
+    { label: 'Dean', value: event.deanStatus },
+  ]
+
+  return (
+    <div className="event-card card-surface">
+      <div className="card-header">
+        <div>
+          <p className="muted">Request #{event.id}</p>
+          <h3>{event.title}</h3>
+        </div>
+        <span className={`badge stage ${event.stage?.toLowerCase()}`}>{event.stage}</span>
+      </div>
+      <p className="muted">{event.description}</p>
+      <div className="status-row">
+        {steps.map((step) => (
+          <EventStatusPill key={step.label} label={step.label} status={step.value} />
+        ))}
+      </div>
+      <div className="progress" data-stage={event.stage}></div>
+    </div>
+  )
+}
+
+function TabNavigation({ tabs, active, onChange }) {
+  return (
+    <>
+      <div className="tab-sidebar">
+        {tabs.map((tab) => (
+          <button key={tab.value} className={`tab-btn ${active === tab.value ? 'active' : ''}`} onClick={() => onChange(tab.value)}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="tab-bottom">
+        {tabs.map((tab) => (
+          <button key={tab.value} className={`tab-btn ${active === tab.value ? 'active' : ''}`} onClick={() => onChange(tab.value)}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function StudentDashboard({ refreshSignal }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [events, setEvents] = useState([])
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState({ type: '', text: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('pending')
 
   const load = async () => {
-    const data = await api('/api/events/mine')
-    setEvents(data)
+    setLoading(true)
+    try {
+      const data = await api('/api/events/mine')
+      setEvents(data)
+      setMessage({ type: '', text: '' })
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Could not load your requests. Please try again.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -130,34 +200,84 @@ function StudentDashboard({ refreshSignal }) {
 
   const submit = async (e) => {
     e.preventDefault()
-    setMessage('')
-    await api('/api/events', {
-      method: 'POST',
-      body: JSON.stringify({ title, description }),
-    })
-    setTitle('')
-    setDescription('')
-    setMessage('Submitted for SA Office review')
-    load()
+    setSubmitting(true)
+    setMessage({ type: '', text: '' })
+    try {
+      await api('/api/events', {
+        method: 'POST',
+        body: JSON.stringify({ title, description }),
+      })
+      setTitle('')
+      setDescription('')
+      setMessage({ type: 'success', text: 'Submitted for SA Office review.' })
+      load()
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Could not submit event.' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
+  const pending = events.filter((ev) => !STAGES_COMPLETE.includes(ev.stage))
+  const past = events.filter((ev) => STAGES_COMPLETE.includes(ev.stage))
+
+  const tabs = [
+    { label: 'Pending', value: 'pending' },
+    { label: 'Past', value: 'past' },
+    { label: 'New request', value: 'new' },
+    { label: 'Change password', value: 'password' },
+  ]
+
   return (
-    <div className="panel">
-      <h2>Request new event</h2>
-      <form onSubmit={submit} className="stack">
-        <label>
-          Title
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </label>
-        <label>
-          Description
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} required />
-        </label>
-        <button type="submit">Submit</button>
-        {message && <div className="success">{message}</div>}
-      </form>
-      <h3>My requests</h3>
-      <EventTable events={events} showStudent={false} />
+    <div className="student-layout">
+      <TabNavigation tabs={tabs} active={activeTab} onChange={setActiveTab} />
+      <div className="tab-content">
+        {activeTab === 'pending' && (
+          <div className="panel card-surface">
+            <div className="panel-header">
+              <div>
+                <p className="muted">Track each step of your submissions</p>
+                <h2>Pending requests</h2>
+              </div>
+              <button className="ghost" onClick={load} disabled={loading}>
+                {loading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+            {loading ? <p className="muted">Loading your requests...</p> : pending.map((ev) => <EventCard key={ev.id} event={ev} />)}
+            {!loading && pending.length === 0 && <p className="muted">No pending items right now.</p>}
+          </div>
+        )}
+
+        {activeTab === 'past' && (
+          <div className="panel card-surface">
+            <h2>Past requests</h2>
+            {loading ? <p className="muted">Loading your requests...</p> : past.map((ev) => <EventCard key={ev.id} event={ev} />)}
+            {!loading && past.length === 0 && <p className="muted">No past requests yet.</p>}
+          </div>
+        )}
+
+        {activeTab === 'new' && (
+          <div className="panel card-surface">
+            <h2>Request new event</h2>
+            <form onSubmit={submit} className="stack">
+              <label>
+                Title
+                <input value={title} onChange={(e) => setTitle(e.target.value)} required />
+              </label>
+              <label>
+                Description
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} required />
+              </label>
+              <button type="submit" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit'}
+              </button>
+              <Banner status={message} />
+            </form>
+          </div>
+        )}
+
+        {activeTab === 'password' && <ChangePasswordCard />}
+      </div>
     </div>
   )
 }
@@ -165,6 +285,8 @@ function StudentDashboard({ refreshSignal }) {
 function ApprovalDashboard({ role }) {
   const [events, setEvents] = useState([])
   const [remarks, setRemarks] = useState({})
+  const [message, setMessage] = useState({ type: '', text: '' })
+  const [working, setWorking] = useState(false)
 
   const load = async () => {
     const data = await api('/api/events/pending')
@@ -176,16 +298,26 @@ function ApprovalDashboard({ role }) {
   }, [])
 
   const act = async (id, approve) => {
-    await api(`/api/events/${id}/decision`, {
-      method: 'POST',
-      body: JSON.stringify({ approve, remark: remarks[id] || '' }),
-    })
-    load()
+    setWorking(true)
+    setMessage({ type: '', text: '' })
+    try {
+      await api(`/api/events/${id}/decision`, {
+        method: 'POST',
+        body: JSON.stringify({ approve, remark: remarks[id] || '' }),
+      })
+      setMessage({ type: 'success', text: approve ? 'Request approved.' : 'Request declined.' })
+      load()
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Action failed. Please try again.' })
+    } finally {
+      setWorking(false)
+    }
   }
 
   return (
     <div className="panel">
       <h2>{role.replace('_', ' ')} queue</h2>
+      <Banner status={message} />
       {events.map((ev) => (
         <div key={ev.id} className="card">
           <div className="card-header">
@@ -200,8 +332,10 @@ function ApprovalDashboard({ role }) {
             onChange={(e) => setRemarks({ ...remarks, [ev.id]: e.target.value })}
           />
           <div className="actions">
-            <button onClick={() => act(ev.id, true)}>Approve</button>
-            <button className="danger" onClick={() => act(ev.id, false)}>
+            <button disabled={working} onClick={() => act(ev.id, true)}>
+              {working ? 'Working...' : 'Approve'}
+            </button>
+            <button className="danger" disabled={working} onClick={() => act(ev.id, false)}>
               Decline
             </button>
           </div>
@@ -218,10 +352,18 @@ function AdminDashboard() {
   const [eventId, setEventId] = useState('')
   const [status, setStatus] = useState('APPROVED')
   const [remark, setRemark] = useState('')
+  const [loadMessage, setLoadMessage] = useState({ type: '', text: '' })
+  const [createMessage, setCreateMessage] = useState({ type: '', text: '' })
+  const [overrideMessage, setOverrideMessage] = useState({ type: '', text: '' })
 
   const load = async () => {
-    const data = await api('/api/admin/users')
-    setUsers(data)
+    try {
+      const data = await api('/api/admin/users')
+      setUsers(data)
+      setLoadMessage({ type: '', text: '' })
+    } catch (err) {
+      setLoadMessage({ type: 'error', text: 'Could not load users. Make sure you are signed in as an admin.' })
+    }
   }
 
   useEffect(() => {
@@ -230,19 +372,31 @@ function AdminDashboard() {
 
   const submit = async (e) => {
     e.preventDefault()
-    await api('/api/admin/users', {
-      method: 'POST',
-      body: JSON.stringify(form),
-    })
-    setForm({ username: '', displayName: '', password: '', role: 'STUDENT' })
-    load()
+    setCreateMessage({ type: '', text: '' })
+    try {
+      await api('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(form),
+      })
+      setForm({ username: '', displayName: '', password: '', role: 'STUDENT' })
+      setCreateMessage({ type: 'success', text: 'User created successfully.' })
+      load()
+    } catch (err) {
+      setCreateMessage({ type: 'error', text: err.message || 'Could not create user.' })
+    }
   }
 
   const override = async (e) => {
     e.preventDefault()
-    await api(`/api/admin/events/${eventId}/override?status=${status}&remark=${encodeURIComponent(remark)}`, { method: 'POST' })
-    setEventId('')
-    setRemark('')
+    setOverrideMessage({ type: '', text: '' })
+    try {
+      await api(`/api/admin/events/${eventId}/override?status=${status}&remark=${encodeURIComponent(remark)}`, { method: 'POST' })
+      setEventId('')
+      setRemark('')
+      setOverrideMessage({ type: 'success', text: 'Override applied.' })
+    } catch (err) {
+      setOverrideMessage({ type: 'error', text: err.message || 'Override failed.' })
+    }
   }
 
   return (
@@ -272,6 +426,7 @@ function AdminDashboard() {
             </select>
           </label>
           <button type="submit">Create</button>
+          <Banner status={createMessage} />
         </form>
         <div className="stack">
           <h3>Override event</h3>
@@ -292,10 +447,12 @@ function AdminDashboard() {
               <input value={remark} onChange={(e) => setRemark(e.target.value)} />
             </label>
             <button type="submit">Apply override</button>
+            <Banner status={overrideMessage} />
           </form>
         </div>
       </div>
       <h3>All users</h3>
+      <Banner status={loadMessage} />
       <table className="user-table">
         <thead>
           <tr>
@@ -391,7 +548,13 @@ function App() {
     if (!user) return <LoginPane onLogin={(u) => setUser(u)} />
     if (user.role === 'STUDENT') return <StudentDashboard refreshSignal={refresh} />
     if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role)) return <ApprovalDashboard role={user.role} />
-    if (['ADMIN', 'DEV'].includes(user.role)) return <AdminDashboard />
+    if (['ADMIN', 'DEV'].includes(user.role))
+      return (
+        <div className="dashboard-grid">
+          <AdminDashboard />
+          <ChangePasswordCard />
+        </div>
+      )
     return <div className="panel">Unknown role</div>
   }, [user, refresh])
 
@@ -408,7 +571,6 @@ function App() {
       </header>
       <main>
         {content}
-        {user && <ChangePasswordCard />}
         {user?.role === 'DEV' && <DevHelp />}
       </main>
     </div>

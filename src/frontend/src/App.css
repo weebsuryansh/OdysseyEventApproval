@@ -6,7 +6,7 @@
 
 body {
   margin: 0;
-  background: #f1f5f9;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%);
 }
 
 .layout {
@@ -41,13 +41,20 @@ main {
   display: grid;
   gap: 16px;
   padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .panel {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+}
+
+.card-surface {
+  border: 1px solid #e2e8f0;
+  backdrop-filter: blur(4px);
 }
 
 .stack {
@@ -81,8 +88,23 @@ button {
   transition: background 0.2s ease;
 }
 
+button.ghost {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+button.ghost:hover {
+  background: #e2e8f0;
+}
+
 button:hover {
   background: #1d4ed8;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
 
 button.danger {
@@ -101,6 +123,25 @@ button.danger:hover {
 .success {
   color: #16a34a;
   font-weight: 600;
+}
+
+.banner {
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.banner.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.banner.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecdd3;
 }
 
 .hint, .muted {
@@ -127,6 +168,14 @@ button.danger:hover {
   margin-bottom: 12px;
 }
 
+.event-card h3 {
+  margin: 4px 0 8px;
+}
+
+.event-card .muted {
+  margin: 0;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -142,6 +191,16 @@ button.danger:hover {
   font-size: 12px;
 }
 
+.badge.stage.approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge.stage.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .actions {
   display: flex;
   gap: 8px;
@@ -155,4 +214,162 @@ button.danger:hover {
 
 .info ul {
   margin-top: 6px;
+}
+
+.student-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
+}
+
+.tab-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 100px;
+  height: max-content;
+}
+
+.tab-bottom {
+  display: none;
+}
+
+.tab-btn {
+  width: 100%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  text-align: left;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #2563eb, #6366f1);
+  color: white;
+  border-color: transparent;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.status-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.status-pill.approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-pill.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-pill.pending {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.progress {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 33%;
+  background: linear-gradient(90deg, #2563eb, #6366f1);
+  transition: width 0.3s ease;
+}
+
+.progress[data-stage='FACULTY_REVIEW']::after {
+  width: 66%;
+}
+
+.progress[data-stage='DEAN_REVIEW']::after,
+.progress[data-stage='APPROVED']::after,
+.progress[data-stage='REJECTED']::after {
+  width: 100%;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  main {
+    padding: 16px;
+  }
+
+  .student-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-sidebar {
+    display: none;
+  }
+
+  .tab-bottom {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    position: sticky;
+    bottom: 12px;
+    background: transparent;
+  }
+
+  .tab-btn {
+    text-align: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-row {
+    flex-direction: column;
+  }
 }
