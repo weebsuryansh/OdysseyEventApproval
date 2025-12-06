@@ -28,6 +28,7 @@ function Banner({ status }) {
 function LoginPane({ onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
   const submit = async (e) => {
@@ -45,16 +46,32 @@ function LoginPane({ onLogin }) {
   }
 
   return (
-    <div className="panel">
-      <h2>Log in</h2>
+    <div className="panel auth-card card-surface">
+      <div className="panel-header">
+        <div>
+          <p className="muted">Welcome back</p>
+          <h2>Sign in to continue</h2>
+        </div>
+        <div className="badge">Secure session</div>
+      </div>
       <form onSubmit={submit} className="stack">
         <label>
           Username
-          <input value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" />
         </label>
-        <label>
-          Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <label className="password-field">
+          <span>Password</span>
+          <div className="input-with-button">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+            />
+            <button type="button" className="ghost compact" onClick={() => setShowPassword(!showPassword)}>
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </label>
         {error && <div className="error">{error}</div>}
         <button type="submit">Sign in</button>
@@ -545,7 +562,22 @@ function App() {
   }
 
   const content = useMemo(() => {
-    if (!user) return <LoginPane onLogin={(u) => setUser(u)} />
+    if (!user)
+      return (
+        <div className="auth-layout">
+          <div className="auth-hero card-surface">
+            <p className="muted">Odyssey Event Approval</p>
+            <h1>Plan, submit, and track events with confidence.</h1>
+            <p className="muted">Students, reviewers, and admins share one streamlined workspace designed to keep every request moving.</p>
+            <div className="pill-row">
+              <span className="pill">Responsive layout</span>
+              <span className="pill">Role-based flows</span>
+              <span className="pill">Secure login</span>
+            </div>
+          </div>
+          <LoginPane onLogin={(u) => setUser(u)} />
+        </div>
+      )
     if (user.role === 'STUDENT') return <StudentDashboard refreshSignal={refresh} />
     if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role)) return <ApprovalDashboard role={user.role} />
     if (['ADMIN', 'DEV'].includes(user.role))
@@ -564,14 +596,18 @@ function App() {
         <div className="brand">Odyssey Event Approval</div>
         {user && (
           <div className="user-bar">
-            <span>{user.displayName} ({user.role})</span>
+            <span>
+              {user.displayName} ({user.role})
+            </span>
             <button onClick={logout}>Logout</button>
           </div>
         )}
       </header>
-      <main>
-        {content}
-        {user?.role === 'DEV' && <DevHelp />}
+      <main className={user ? 'content-main' : 'auth-main'}>
+        <div className="page-shell">
+          {content}
+          {user?.role === 'DEV' && <DevHelp />}
+        </div>
       </main>
     </div>
   )

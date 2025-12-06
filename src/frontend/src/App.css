@@ -19,7 +19,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 16px 28px;
   background: #0f172a;
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -38,17 +38,28 @@ body {
 
 main {
   flex: 1;
-  display: grid;
-  gap: 16px;
-  padding: 24px;
-  max-width: 1200px;
+  display: flex;
+  justify-content: center;
+}
+
+.content-main,
+.auth-main {
+  width: 100%;
+  padding: 32px 28px 40px;
+}
+
+.page-shell {
+  width: min(1400px, calc(100% - 24px));
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .panel {
   background: white;
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
 }
 
@@ -86,6 +97,11 @@ button {
   border: none;
   cursor: pointer;
   transition: background 0.2s ease;
+}
+
+.compact {
+  width: auto;
+  padding-inline: 12px;
 }
 
 button.ghost {
@@ -219,7 +235,9 @@ button.danger:hover {
 .student-layout {
   display: grid;
   grid-template-columns: 220px 1fr;
-  gap: 20px;
+  gap: 24px;
+  align-items: start;
+  width: 100%;
 }
 
 .tab-sidebar {
@@ -255,7 +273,7 @@ button.danger:hover {
 .tab-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .panel-header {
@@ -330,9 +348,66 @@ button.danger:hover {
   gap: 16px;
 }
 
+.auth-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+.auth-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px;
+  background: linear-gradient(135deg, #eff6ff, #eef2ff);
+}
+
+.auth-hero h1 {
+  margin: 0;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  background: white;
+  border: 1px solid #dbeafe;
+  color: #1e3a8a;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input-with-button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.password-field span {
+  display: block;
+  margin-bottom: 6px;
+}
+
 @media (max-width: 900px) {
-  main {
-    padding: 16px;
+  .content-main,
+  .auth-main {
+    padding: 20px 16px 28px;
+  }
+
+  .page-shell {
+    width: calc(100% - 8px);
   }
 
   .student-layout {
