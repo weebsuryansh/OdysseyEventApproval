@@ -29,7 +29,7 @@ function ChangePasswordCard() {
       setNewPassword('')
       setConfirm('')
     } catch (err) {
-      setStatus({ type: 'error', text: 'Could not update password. Double-check your current password and try again.' })
+      setStatus({ type: 'error', text: err.message || 'Could not update password. Double-check your current password and try again.' })
     }
   }
 

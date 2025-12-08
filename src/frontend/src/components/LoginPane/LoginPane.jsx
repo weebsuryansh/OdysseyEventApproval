@@ -19,7 +19,7 @@ function LoginPane({ onLogin }) {
       })
       onLogin(user)
     } catch (err) {
-      setError('Login failed')
+      setError(err.message || 'Login failed')
     }
   }
 
