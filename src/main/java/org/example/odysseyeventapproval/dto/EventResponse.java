@@ -5,6 +5,8 @@ import org.example.odysseyeventapproval.model.Event;
 import org.example.odysseyeventapproval.model.EventStage;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class EventResponse {
     private Long id;
@@ -20,6 +22,7 @@ public class EventResponse {
     private String deanRemark;
     private Instant createdAt;
     private Instant updatedAt;
+    private List<SubEventResponse> subEvents;
 
     public static EventResponse from(Event event) {
         EventResponse response = new EventResponse();
@@ -36,6 +39,7 @@ public class EventResponse {
         response.deanRemark = event.getDeanRemark();
         response.createdAt = event.getCreatedAt();
         response.updatedAt = event.getUpdatedAt();
+        response.subEvents = event.getSubEvents().stream().map(SubEventResponse::from).collect(Collectors.toList());
         return response;
     }
 
@@ -52,4 +56,5 @@ public class EventResponse {
     public String getDeanRemark() { return deanRemark; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public List<SubEventResponse> getSubEvents() { return subEvents; }
 }
