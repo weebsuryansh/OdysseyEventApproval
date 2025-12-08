@@ -35,6 +35,52 @@
   margin: 6px 0 2px;
 }
 
+.subevent-block {
+  border: 1px dashed var(--border-subtle);
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+
+.subevent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subevent-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.poc-status {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  text-transform: lowercase;
+  border: 1px solid var(--border-subtle);
+}
+
+.poc-status.accepted {
+  color: #15803d;
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+
+.poc-status.declined {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecdd3;
+}
+
+.poc-status.pending {
+  color: #854d0e;
+  background: #fef9c3;
+  border-color: #fcd34d;
+}
+
 .progress {
   height: 6px;
   background: #e2e8f0;
@@ -49,13 +95,21 @@
   top: 0;
   left: 0;
   height: 100%;
-  width: 33%;
+  width: 25%;
   background: linear-gradient(90deg, #2563eb, #6366f1);
   transition: width 0.3s ease;
 }
 
+.progress[data-stage='POC_REVIEW']::after {
+  width: 15%;
+}
+
+.progress[data-stage='SA_REVIEW']::after {
+  width: 40%;
+}
+
 .progress[data-stage='FACULTY_REVIEW']::after {
-  width: 66%;
+  width: 70%;
 }
 
 .progress[data-stage='DEAN_REVIEW']::after,

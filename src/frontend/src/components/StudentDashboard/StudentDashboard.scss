@@ -12,6 +12,66 @@
   gap: 18px;
 }
 
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.poc-card {
+  border: 1px solid var(--border-subtle);
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: var(--surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.poc-details {
+  background: var(--surface);
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-subtle);
+  display: grid;
+  gap: 6px;
+}
+
+.subevent-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subevent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subevent-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.subevent-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.poc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
 @media (max-width: 900px) {
   .student-layout {
     grid-template-columns: 1fr;

@@ -8,6 +8,8 @@ function EventCard({ event }) {
     { label: 'Dean', value: event.deanStatus, remark: event.deanRemark },
   ]
 
+  const pocStatuses = event.subEvents || []
+
   return (
     <div className="event-card card-surface">
       <div className="card-header">
@@ -18,6 +20,27 @@ function EventCard({ event }) {
         <span className={`badge stage ${event.stage?.toLowerCase()}`}>{event.stage}</span>
       </div>
       <p className="muted description">{event.description}</p>
+
+      {pocStatuses.length > 0 && (
+        <div className="subevent-block">
+          <p className="muted">Sub-events and POCs</p>
+          <div className="subevent-list">
+            {pocStatuses.map((sub) => (
+              <div key={sub.id} className="subevent-row">
+                <div>
+                  <strong>{sub.name}</strong>
+                  <p className="muted">
+                    POC: {sub.pocName} ({sub.pocUsername}) · {sub.pocPhone}
+                  </p>
+                  <p className="muted">Budget head: {sub.budgetHead}</p>
+                </div>
+                <span className={`poc-status ${sub.status.toLowerCase()}`}>{sub.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="status-row">
         {steps.map((step) => (
           <EventStatusPill key={step.label} label={step.label} status={step.value} remark={step.remark} />

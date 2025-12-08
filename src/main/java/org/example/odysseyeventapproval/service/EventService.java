@@ -2,19 +2,27 @@ package org.example.odysseyeventapproval.service;
 
 import org.example.odysseyeventapproval.dto.DecisionRequest;
 import org.example.odysseyeventapproval.dto.EventRequest;
+import org.example.odysseyeventapproval.dto.SubEventRequest;
 import org.example.odysseyeventapproval.model.*;
 import org.example.odysseyeventapproval.repository.EventRepository;
+import org.example.odysseyeventapproval.repository.SubEventRepository;
+import org.example.odysseyeventapproval.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class EventService {
     private final EventRepository eventRepository;
+    private final SubEventRepository subEventRepository;
+    private final UserRepository userRepository;
 
-    public EventService(EventRepository eventRepository) {
+    public EventService(EventRepository eventRepository, SubEventRepository subEventRepository, UserRepository userRepository) {
         this.eventRepository = eventRepository;
+        this.subEventRepository = subEventRepository;
+        this.userRepository = userRepository;
     }
 
     public Event createEvent(User student, EventRequest request) {
@@ -22,6 +30,7 @@ public class EventService {
         event.setStudent(student);
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
+        event.setSubEvents(buildSubEvents(event, student, request.getSubEvents()));
         return eventRepository.save(event);
     }
 
@@ -48,6 +57,9 @@ public class EventService {
         if (event.getStage() == EventStage.APPROVED || event.getStage() == EventStage.REJECTED) {
             return event;
         }
+        if (event.getStage() == EventStage.POC_REVIEW) {
+            throw new IllegalStateException("All POCs must respond before approvals can proceed");
+        }
         if (approver.getRole() == UserRole.SA_OFFICE && event.getStage() == EventStage.SA_REVIEW) {
             applyDecision(event, request, StageTarget.SA);
         } else if (approver.getRole() == UserRole.FACULTY_COORDINATOR && event.getStage() == EventStage.FACULTY_REVIEW) {
@@ -58,6 +70,37 @@ public class EventService {
             throw new IllegalStateException("User cannot decide on this stage");
         }
         return eventRepository.save(event);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SubEvent> listPendingPoc(User poc) {
+        return subEventRepository.findByPocAndPocStatus(poc, PocStatus.PENDING);
+    }
+
+    @Transactional
+    public SubEvent decideOnPoc(User poc, Long subEventId, boolean accept) {
+        SubEvent subEvent = subEventRepository.findById(subEventId).orElseThrow();
+        if (!subEvent.getPoc().getId().equals(poc.getId())) {
+            throw new IllegalStateException("User cannot act on this sub-event");
+        }
+        if (subEvent.getPocStatus() != PocStatus.PENDING) {
+            return subEvent;
+        }
+
+        subEvent.setPocStatus(accept ? PocStatus.ACCEPTED : PocStatus.DECLINED);
+        Event event = subEvent.getEvent();
+
+        if (!accept) {
+            event.setStage(EventStage.REJECTED);
+            event.setSaStatus(DecisionStatus.REJECTED);
+            event.setSaRemark("Rejected because POC declined");
+        } else if (event.getSubEvents().stream().allMatch(se -> se.getPocStatus() == PocStatus.ACCEPTED)) {
+            event.setStage(EventStage.SA_REVIEW);
+        }
+
+        event.touchUpdatedAt();
+        eventRepository.save(event);
+        return subEvent;
     }
 
     @Transactional
@@ -124,6 +167,39 @@ public class EventService {
             }
         }
         event.touchUpdatedAt();
+    }
+
+    private List<SubEvent> buildSubEvents(Event event, User student, List<SubEventRequest> subEventRequests) {
+        if (subEventRequests == null || subEventRequests.isEmpty()) {
+            throw new IllegalArgumentException("Please add at least one sub-event");
+        }
+        if (subEventRequests.size() > 15) {
+            throw new IllegalArgumentException("A maximum of 15 sub-events is allowed");
+        }
+
+        List<SubEvent> results = new ArrayList<>();
+        for (SubEventRequest request : subEventRequests) {
+            User poc = userRepository.findByUsername(request.getPocUsername())
+                    .orElseThrow(() -> new IllegalArgumentException("POC username not found: " + request.getPocUsername()));
+            if (poc.getRole() != UserRole.STUDENT) {
+                throw new IllegalArgumentException("POC must be a student user");
+            }
+            if (poc.getId().equals(student.getId())) {
+                throw new IllegalArgumentException("POC cannot be the event creator");
+            }
+
+            SubEvent subEvent = new SubEvent();
+            subEvent.setEvent(event);
+            subEvent.setName(request.getName());
+            subEvent.setBudgetHead(request.getBudgetHead());
+            subEvent.setBudgetBreakdown(request.getBudgetBreakdown());
+            subEvent.setPoc(poc);
+            subEvent.setPocName(request.getPocName());
+            subEvent.setPocPhone(request.getPocPhone());
+            results.add(subEvent);
+        }
+
+        return results;
     }
 
     private void updateStageFromDecisions(Event event) {

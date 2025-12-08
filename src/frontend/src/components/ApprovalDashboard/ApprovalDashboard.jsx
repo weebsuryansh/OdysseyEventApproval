@@ -57,6 +57,22 @@ function ApprovalDashboard({ role }) {
           </div>
           <p>{ev.description}</p>
           <p className="muted">Student: {ev.studentName}</p>
+          {ev.subEvents?.length > 0 && (
+            <div className="poc-summary">
+              <p className="muted">Sub-events / POCs</p>
+              <div className="poc-summary-list">
+                {ev.subEvents.map((sub) => (
+                  <div key={sub.id} className="poc-summary-row">
+                    <div>
+                      <strong>{sub.name}</strong>
+                      <p className="muted">POC: {sub.pocName} ({sub.pocUsername})</p>
+                    </div>
+                    <span className={`poc-status ${sub.status.toLowerCase()}`}>{sub.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <textarea
             placeholder="Add a remark (required when declining)"
             value={remarks[ev.id] || ''}

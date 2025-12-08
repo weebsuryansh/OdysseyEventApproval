@@ -1,7 +1,10 @@
 package org.example.odysseyeventapproval.model;
 
 import jakarta.persistence.*;
+
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "events")
@@ -22,7 +25,7 @@ public class Event {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EventStage stage = EventStage.SA_REVIEW;
+    private EventStage stage = EventStage.POC_REVIEW;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -39,6 +42,9 @@ public class Event {
     private String saRemark;
     private String facultyRemark;
     private String deanRemark;
+
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<SubEvent> subEvents = new ArrayList<>();
 
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
@@ -140,5 +146,13 @@ public class Event {
 
     public void touchUpdatedAt() {
         this.updatedAt = Instant.now();
+    }
+
+    public List<SubEvent> getSubEvents() {
+        return subEvents;
+    }
+
+    public void setSubEvents(List<SubEvent> subEvents) {
+        this.subEvents = subEvents;
     }
 }
