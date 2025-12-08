@@ -35,7 +35,7 @@ function AdminDashboard() {
       setUsers(data)
       setLoadMessage({ type: '', text: '' })
     } catch (err) {
-      setLoadMessage({ type: 'error', text: 'Could not load users. Make sure you are signed in as an admin.' })
+      setLoadMessage({ type: 'error', text: err.message || 'Could not load users. Make sure you are signed in as an admin.' })
     }
   }
 
@@ -50,7 +50,7 @@ function AdminDashboard() {
         setSelectedEvent(updated || null)
       }
     } catch (err) {
-      setEventsMessage({ type: 'error', text: 'Could not load events. Please try again.' })
+      setEventsMessage({ type: 'error', text: err.message || 'Could not load events. Please try again.' })
     } finally {
       setEventsLoading(false)
     }
