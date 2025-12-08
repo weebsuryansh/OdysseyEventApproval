@@ -41,7 +41,7 @@ function StudentDashboard() {
       setMessage({ type: '', text: '' })
       setPocMessage({ type: '', text: '' })
     } catch (err) {
-      setMessage({ type: 'error', text: 'Could not load your requests. Please try again.' })
+      setMessage({ type: 'error', text: err.message || 'Could not load your requests. Please try again.' })
     } finally {
       setLoading(false)
     }
