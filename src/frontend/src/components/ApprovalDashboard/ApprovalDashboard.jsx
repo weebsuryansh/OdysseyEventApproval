@@ -10,8 +10,13 @@ function ApprovalDashboard({ role }) {
   const [working, setWorking] = useState(false)
 
   const load = async () => {
-    const data = await api('/api/events/pending')
-    setEvents(data)
+    try {
+      const data = await api('/api/events/pending')
+      setEvents(data)
+      setMessage({ type: '', text: '' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Could not load pending events.' })
+    }
   }
 
   useEffect(() => {
