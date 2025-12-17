@@ -3,7 +3,7 @@ import './Header.scss'
 function Header({ user, onLogout, onToggleTheme, theme }) {
   return (
     <header className="topbar">
-      <div className="brand">Odyssey Event Approval</div>
+      <div className="brand">Events Portal</div>
       <div className="header-actions">
         <button className="compact theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme">
           {theme === 'dark' ? '☀️ Light mode' : '🌙 Night mode'}
