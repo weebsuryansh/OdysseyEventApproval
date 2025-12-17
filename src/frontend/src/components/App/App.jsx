@@ -66,9 +66,8 @@ function App() {
             <div className="auth-body">
               <div className="system-name">Events Portal</div>
               <LoginPane onLogin={(u) => setUser(u)} />
+              <img src={skyline} alt="Campus skyline" className="skyline-graphic" />
             </div>
-
-            <img src={skyline} alt="Campus skyline" className="skyline-graphic" />
             <div className="auth-footer">
               Powered by <span className="footer-accent">IT Department</span>
             </div>

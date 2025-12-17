@@ -40,7 +40,7 @@ main {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 72px 24px 180px;
+  padding: 72px 24px 120px;
   color: #0f5560;
   background: #ffffff;
 }
@@ -94,10 +94,10 @@ main {
 
 .auth-body {
   position: relative;
-  width: min(1180px, 100%);
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr) 320px;
-  gap: 60px;
+  width: min(820px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
   align-items: center;
   justify-content: center;
   z-index: 1;
@@ -105,7 +105,7 @@ main {
 
 .system-name {
   justify-self: center;
-  font-size: 28px;
+  font-size: 26px;
   color: #1c8893;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -113,13 +113,11 @@ main {
 }
 
 .skyline-graphic {
-  position: absolute;
-  bottom: 36px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(900px, 90vw);
-  opacity: 0.94;
+  position: relative;
+  width: min(720px, 82vw);
+  opacity: 0.96;
   pointer-events: none;
+  margin-top: 8px;
 }
 
 .auth-footer {
@@ -157,9 +155,8 @@ main {
   }
 
   .auth-body {
-    width: min(960px, 100%);
-    grid-template-columns: 1fr;
-    gap: 32px;
+    width: min(640px, 100%);
+    gap: 18px;
   }
 
   .system-name {
