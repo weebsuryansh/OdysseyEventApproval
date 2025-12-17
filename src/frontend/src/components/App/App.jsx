@@ -57,14 +57,15 @@ function App() {
 
             <div className="auth-header">
               <img src={portalLogo} alt="Events Portal logo" className="brand-mark" />
-              <div className="brand-copy">
-                <span className="brand-name">Events Portal</span>
-                <span className="brand-tagline">Campus Events Gateway</span>
-              </div>
             </div>
 
             <div className="auth-body">
-              <div className="system-name">Events Portal</div>
+              <div className="brand-panel">
+                <div className="brand-copy">
+                  <span className="brand-name">Events Portal</span>
+                  <span className="brand-tagline">Campus Events Gateway</span>
+                </div>
+              </div>
               <LoginPane onLogin={(u) => setUser(u)} />
               <img src={skyline} alt="Campus skyline" className="skyline-graphic" />
             </div>

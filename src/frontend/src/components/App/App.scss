@@ -61,7 +61,6 @@ main {
   top: 18px;
   left: 26px;
   display: flex;
-  gap: 12px;
   align-items: center;
   z-index: 2;
 }
@@ -71,18 +70,36 @@ main {
   height: auto;
 }
 
+.auth-body {
+  position: relative;
+  width: min(960px, 100%);
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(320px, 360px);
+  gap: 26px;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.brand-panel {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .brand-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   font-size: 13px;
   letter-spacing: 0.04em;
   color: #0f5560;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .brand-name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   color: #0c8c97;
   letter-spacing: 0.12em;
@@ -90,17 +107,6 @@ main {
 
 .brand-tagline {
   font-weight: 600;
-}
-
-.auth-body {
-  position: relative;
-  width: min(820px, 100%);
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
 }
 
 .system-name {
@@ -114,7 +120,8 @@ main {
 
 .skyline-graphic {
   position: relative;
-  width: min(720px, 82vw);
+  grid-column: 1 / -1;
+  width: min(760px, 88vw);
   opacity: 0.96;
   pointer-events: none;
   margin-top: 8px;
@@ -156,7 +163,13 @@ main {
 
   .auth-body {
     width: min(640px, 100%);
-    gap: 18px;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .brand-panel {
+    justify-content: center;
   }
 
   .system-name {
