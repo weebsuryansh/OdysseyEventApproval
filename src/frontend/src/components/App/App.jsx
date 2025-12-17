@@ -60,13 +60,15 @@ function App() {
             </div>
 
             <div className="auth-body">
-              <div className="brand-panel">
-                <div className="brand-copy">
-                  <span className="brand-name">Events Portal</span>
-                  <span className="brand-tagline">Campus Events Gateway</span>
+              <div className={"login-body"}>
+                <div className="brand-panel">
+                  <div className="brand-copy">
+                    <span className="brand-name">Events Portal</span>
+                    <span className="brand-tagline">Campus Events Gateway</span>
+                  </div>
                 </div>
+                <LoginPane onLogin={(u) => setUser(u)} />
               </div>
-              <LoginPane onLogin={(u) => setUser(u)} />
               <img src={skyline} alt="Campus skyline" className="skyline-graphic" />
             </div>
             <div className="auth-footer">

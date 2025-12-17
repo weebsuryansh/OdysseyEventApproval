@@ -33,7 +33,8 @@ main {
 
 .auth-hero {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
+
   width: 100%;
   overflow: hidden;
   display: flex;
@@ -48,7 +49,9 @@ main {
 .cloud-band {
   position: absolute;
   inset: 0 0 auto 0;
-  height: 230px;
+  height: 15vh;
+  min-height: 80px;
+
   width: 100%;
   object-fit: cover;
   opacity: 0.92;
@@ -58,44 +61,50 @@ main {
 
 .auth-header {
   position: absolute;
-  top: 18px;
-  left: 26px;
+  top: 5vh;
+  left: 2vw;
   display: flex;
   align-items: center;
   z-index: 2;
 }
 
 .brand-mark {
-  width: 160px;
+  width: 20vw;
   height: auto;
 }
 
 .auth-body {
+  top:10vh;
+  width:100vw;
   position: relative;
-  width: min(960px, 100%);
-  display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(320px, 360px);
-  gap: 26px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 1;
 }
 
+.login-body{
+  display: flex;
+  width: 60vw;
+  justify-content: space-between;
+}
+
 .brand-panel {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0.04em;
   color: #0f5560;
   text-transform: uppercase;
-  text-align: center;
+  text-align: left;
 }
 
 .brand-name {
@@ -120,8 +129,8 @@ main {
 
 .skyline-graphic {
   position: relative;
-  grid-column: 1 / -1;
-  width: min(760px, 88vw);
+  height:auto;
+  width: 50vw;
   opacity: 0.96;
   pointer-events: none;
   margin-top: 8px;
@@ -206,4 +215,12 @@ main {
     right: 0;
     text-align: center;
   }
+  .login-body{
+    display: flex;
+    flex-direction: column;
+    width: 60vw;
+    height: 60vh;
+    justify-content: space-between;
+  }
+
 }
