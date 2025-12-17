@@ -1,15 +1,15 @@
 :root {
-  --bg: #f4f6fb;
-  --bg-gradient: linear-gradient(180deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%);
+  --bg: #f4fbfc;
+  --bg-gradient: linear-gradient(180deg, #f7fcfd 0%, #edf7f8 50%, #f7fcfd 100%);
   --surface: #ffffff;
-  --surface-muted: #f4f7fb;
+  --surface-muted: #f2f8f9;
   --text-primary: #0f172a;
   --text-strong: #0f172a;
   --text-muted: #64748b;
   --border-subtle: #e2e8f0;
-  --accent: #2563eb;
+  --accent: #0c8c97;
   --accent-contrast: #ffffff;
-  --card-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  --card-shadow: 0 12px 40px rgba(12, 140, 151, 0.08);
   --status-success-bg: #ecfdf3;
   --status-success-border: #bbf7d0;
   --status-success-text: #166534;
@@ -30,7 +30,7 @@
   --text-strong: #f8fafc;
   --text-muted: #cbd5e1;
   --border-subtle: #1f2937;
-  --accent: #60a5fa;
+  --accent: #2ec1c5;
   --accent-contrast: #0b1220;
   --card-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
   --status-success-bg: rgba(22, 163, 74, 0.16);
@@ -98,7 +98,7 @@ button {
 }
 
 button:hover {
-  background: #1d4ed8;
+  background: #0fa7b3;
 }
 
 button:disabled {

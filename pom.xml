@@ -11,8 +11,8 @@
     <groupId>org.example</groupId>
     <artifactId>OdysseyEventApproval</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>OdysseyEventApproval</name>
-    <description>OdysseyEventApproval</description>
+    <name>Events Portal</name>
+    <description>Events Portal</description>
     <url/>
     <licenses>
         <license/>
