@@ -17,12 +17,120 @@ main {
   padding: 32px 28px 40px;
 }
 
+.auth-main {
+  padding: 0;
+  display: block;
+  background: #ffffff;
+}
+
 .page-shell {
   width: min(1400px, calc(100% - 32px));
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.auth-hero {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 72px 24px 120px;
+  color: #0f5560;
+  background: #ffffff;
+}
+
+.cloud-band {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 230px;
+  width: 100%;
+  object-fit: cover;
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+
+.auth-header {
+  position: absolute;
+  top: 18px;
+  left: 26px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 2;
+}
+
+.brand-mark {
+  width: 160px;
+  height: auto;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: #0f5560;
+  text-transform: uppercase;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0c8c97;
+  letter-spacing: 0.12em;
+}
+
+.brand-tagline {
+  font-weight: 600;
+}
+
+.auth-body {
+  position: relative;
+  width: min(820px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.system-name {
+  justify-self: center;
+  font-size: 26px;
+  color: #1c8893;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.skyline-graphic {
+  position: relative;
+  width: min(720px, 82vw);
+  opacity: 0.96;
+  pointer-events: none;
+  margin-top: 8px;
+}
+
+.auth-footer {
+  position: absolute;
+  bottom: 10px;
+  right: 24px;
+  font-size: 12px;
+  color: #1f6d77;
+}
+
+.footer-accent {
+  color: #0c8c97;
+  font-weight: 700;
 }
 
 .panel-header {
@@ -41,11 +149,48 @@ main {
   .page-shell {
     width: calc(100% - 12px);
   }
+
+  .auth-hero {
+    padding: 120px 24px 220px;
+  }
+
+  .auth-body {
+    width: min(640px, 100%);
+    gap: 18px;
+  }
+
+  .system-name {
+    justify-self: center;
+    text-align: center;
+  }
+
+  .auth-footer {
+    right: 24px;
+  }
 }
 
 @media (max-width: 600px) {
   .panel-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .auth-header {
+    position: static;
+    justify-content: center;
+  }
+
+  .brand-mark {
+    width: 120px;
+  }
+
+  .auth-hero {
+    padding: 110px 18px 220px;
+  }
+
+  .auth-footer {
+    left: 0;
+    right: 0;
+    text-align: center;
   }
 }
