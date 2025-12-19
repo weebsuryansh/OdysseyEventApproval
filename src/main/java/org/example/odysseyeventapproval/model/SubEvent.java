@@ -2,7 +2,6 @@ package org.example.odysseyeventapproval.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-
 @Entity
 @Table(name = "sub_events")
 public class SubEvent {
@@ -17,8 +16,11 @@ public class SubEvent {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private String budgetHead;
+
     @Column(nullable = false, precision = 14, scale = 2)
-    private BigDecimal budgetHead;
+    private BigDecimal budgetTotal = BigDecimal.ZERO;
 
     @Column(nullable = false, length = 2000)
     private String budgetBreakdown;
@@ -61,12 +63,20 @@ public class SubEvent {
         this.name = name;
     }
 
-    public BigDecimal getBudgetHead() {
+    public String getBudgetHead() {
         return budgetHead;
     }
 
-    public void setBudgetHead(BigDecimal budgetHead) {
+    public void setBudgetHead(String budgetHead) {
         this.budgetHead = budgetHead;
+    }
+
+    public BigDecimal getBudgetTotal() {
+        return budgetTotal;
+    }
+
+    public void setBudgetTotal(BigDecimal budgetTotal) {
+        this.budgetTotal = budgetTotal;
     }
 
     public String getBudgetBreakdown() {
