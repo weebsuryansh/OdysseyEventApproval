@@ -61,9 +61,9 @@ public class BudgetReportService {
     }
 
     private void writeTableHeader(PageState state) throws IOException {
-        writeText(state, repeat('═', 95), FONT_COURIER);
+        writeText(state, repeat('=', 95), FONT_COURIER);
         writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", "Sub-Event", "POC", "Phone", "Budget Head", "Total (₹)"), FONT_COURIER_BOLD);
-        writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", repeat('─', 12), repeat('─', 8), repeat('─', 8), repeat('─', 10), repeat('─', 10)), FONT_COURIER);
+        writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", repeat('-', 12), repeat('-', 8), repeat('-', 8), repeat('-', 10), repeat('-', 10)), FONT_COURIER);
     }
 
     private void writeSubEvent(PageState state, SubEvent subEvent, List<BudgetItemDto> items, BigDecimal total) throws IOException {
@@ -90,7 +90,7 @@ public class BudgetReportService {
             writeText(state, String.format("      Sub-total: %s", formatAmount(total)), FONT_HELVETICA_BOLD);
         }
 
-        writeText(state, repeat('─', 95), FONT_COURIER);
+        writeText(state, repeat('-', 95), FONT_COURIER);
     }
 
     private BigDecimal resolveBudgetTotal(SubEvent subEvent, List<BudgetItemDto> items) {
