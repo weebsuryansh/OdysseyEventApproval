@@ -29,21 +29,10 @@ function EventCard({ event }) {
               <div key={sub.id} className="subevent-row">
                 <div>
                   <strong>{sub.name}</strong>
-                  <p className="muted">Club: {sub.clubName}</p>
                   <p className="muted">
                     POC: {sub.pocName} ({sub.pocUsername}) · {sub.pocPhone}
                   </p>
-                  <p className="muted">Budget head: ₹{Number(sub.budgetHead).toFixed(2)}</p>
-                  {sub.budgetItems?.length > 0 && (
-                    <ul className="budget-list">
-                      {sub.budgetItems.map((item, idx) => (
-                        <li key={idx}>
-                          <span className="muted">{item.description}</span>
-                          <strong>₹{Number(item.amount).toFixed(2)}</strong>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <p className="muted">Budget head: {sub.budgetHead}</p>
                 </div>
                 <span className={`poc-status ${sub.status.toLowerCase()}`}>{sub.status}</span>
               </div>

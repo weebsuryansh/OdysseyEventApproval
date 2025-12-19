@@ -1,13 +1,9 @@
 package org.example.odysseyeventapproval.dto;
 
-import java.math.BigDecimal;
-import java.util.List;
-
 public class SubEventRequest {
     private String name;
-    private BigDecimal budgetHead;
-    private List<BudgetItemDto> budgetItems;
-    private Long clubId;
+    private String budgetHead;
+    private String budgetBreakdown;
     private String pocUsername;
     private String pocName;
     private String pocPhone;
@@ -20,12 +16,20 @@ public class SubEventRequest {
         this.name = name;
     }
 
-    public BigDecimal getBudgetHead() {
+    public String getBudgetHead() {
         return budgetHead;
     }
 
-    public void setBudgetHead(BigDecimal budgetHead) {
+    public void setBudgetHead(String budgetHead) {
         this.budgetHead = budgetHead;
+    }
+
+    public String getBudgetBreakdown() {
+        return budgetBreakdown;
+    }
+
+    public void setBudgetBreakdown(String budgetBreakdown) {
+        this.budgetBreakdown = budgetBreakdown;
     }
 
     public String getPocUsername() {
@@ -50,21 +54,5 @@ public class SubEventRequest {
 
     public void setPocPhone(String pocPhone) {
         this.pocPhone = pocPhone;
-    }
-
-    public List<BudgetItemDto> getBudgetItems() {
-        return budgetItems;
-    }
-
-    public void setBudgetItems(List<BudgetItemDto> budgetItems) {
-        this.budgetItems = budgetItems;
-    }
-
-    public Long getClubId() {
-        return clubId;
-    }
-
-    public void setClubId(Long clubId) {
-        this.clubId = clubId;
     }
 }

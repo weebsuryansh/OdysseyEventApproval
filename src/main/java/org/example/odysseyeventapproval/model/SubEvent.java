@@ -2,10 +2,6 @@ package org.example.odysseyeventapproval.model;
 
 import jakarta.persistence.*;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-
 @Entity
 @Table(name = "sub_events")
 public class SubEvent {
@@ -20,15 +16,11 @@ public class SubEvent {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal budgetHead;
+    @Column(nullable = false)
+    private String budgetHead;
 
-    @OneToMany(mappedBy = "subEvent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<BudgetItem> budgetItems = new ArrayList<>();
-
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "club_id")
-    private Club club;
+    @Column(nullable = false, length = 2000)
+    private String budgetBreakdown;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "poc_id")
@@ -64,12 +56,20 @@ public class SubEvent {
         this.name = name;
     }
 
-    public BigDecimal getBudgetHead() {
+    public String getBudgetHead() {
         return budgetHead;
     }
 
-    public void setBudgetHead(BigDecimal budgetHead) {
+    public void setBudgetHead(String budgetHead) {
         this.budgetHead = budgetHead;
+    }
+
+    public String getBudgetBreakdown() {
+        return budgetBreakdown;
+    }
+
+    public void setBudgetBreakdown(String budgetBreakdown) {
+        this.budgetBreakdown = budgetBreakdown;
     }
 
     public User getPoc() {
@@ -102,21 +102,5 @@ public class SubEvent {
 
     public void setPocStatus(PocStatus pocStatus) {
         this.pocStatus = pocStatus;
-    }
-
-    public List<BudgetItem> getBudgetItems() {
-        return budgetItems;
-    }
-
-    public void setBudgetItems(List<BudgetItem> budgetItems) {
-        this.budgetItems = budgetItems;
-    }
-
-    public Club getClub() {
-        return club;
-    }
-
-    public void setClub(Club club) {
-        this.club = club;
     }
 }

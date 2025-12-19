@@ -2,20 +2,14 @@ package org.example.odysseyeventapproval.dto;
 
 import org.example.odysseyeventapproval.model.SubEvent;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
-
 public class PocRequestResponse {
     private Long subEventId;
     private Long eventId;
     private String eventTitle;
     private String eventDescription;
     private String subEventName;
-    private BigDecimal budgetHead;
-    private List<BudgetItemDto> budgetItems;
-    private Long clubId;
-    private String clubName;
+    private String budgetHead;
+    private String budgetBreakdown;
     private String pocName;
     private String pocPhone;
     private String status;
@@ -29,9 +23,7 @@ public class PocRequestResponse {
         response.eventDescription = subEvent.getEvent().getDescription();
         response.subEventName = subEvent.getName();
         response.budgetHead = subEvent.getBudgetHead();
-        response.budgetItems = subEvent.getBudgetItems().stream().map(BudgetItemDto::from).collect(Collectors.toList());
-        response.clubId = subEvent.getClub().getId();
-        response.clubName = subEvent.getClub().getName();
+        response.budgetBreakdown = subEvent.getBudgetBreakdown();
         response.pocName = subEvent.getPocName();
         response.pocPhone = subEvent.getPocPhone();
         response.status = subEvent.getPocStatus().name();
@@ -59,8 +51,12 @@ public class PocRequestResponse {
         return subEventName;
     }
 
-    public BigDecimal getBudgetHead() {
+    public String getBudgetHead() {
         return budgetHead;
+    }
+
+    public String getBudgetBreakdown() {
+        return budgetBreakdown;
     }
 
     public String getPocName() {
@@ -77,17 +73,5 @@ public class PocRequestResponse {
 
     public String getRequestedBy() {
         return requestedBy;
-    }
-
-    public List<BudgetItemDto> getBudgetItems() {
-        return budgetItems;
-    }
-
-    public Long getClubId() {
-        return clubId;
-    }
-
-    public String getClubName() {
-        return clubName;
     }
 }

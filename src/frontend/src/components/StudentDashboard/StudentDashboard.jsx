@@ -7,12 +7,10 @@ import { api } from '../../services/api'
 import './StudentDashboard.scss'
 
 const STAGES_COMPLETE = ['APPROVED', 'REJECTED']
-const EMPTY_BUDGET_ITEM = { description: '', amount: '' }
 const EMPTY_SUB_EVENT = {
   name: '',
   budgetHead: '',
-  budgetItems: [{ ...EMPTY_BUDGET_ITEM }],
-  clubId: '',
+  budgetBreakdown: '',
   pocUsername: '',
   pocName: '',
   pocPhone: '',
@@ -24,8 +22,6 @@ function StudentDashboard() {
   const [subEvents, setSubEvents] = useState([{ ...EMPTY_SUB_EVENT }])
   const [events, setEvents] = useState([])
   const [pocRequests, setPocRequests] = useState([])
-  const [pocDrafts, setPocDrafts] = useState({})
-  const [clubs, setClubs] = useState([])
   const [message, setMessage] = useState({ type: '', text: '' })
   const [pocMessage, setPocMessage] = useState({ type: '', text: '' })
   const [submitting, setSubmitting] = useState(false)
@@ -36,28 +32,12 @@ function StudentDashboard() {
   const load = async () => {
     setLoading(true)
     try {
-      const [eventsData, pocData, clubsData] = await Promise.all([
+      const [eventsData, pocData] = await Promise.all([
         api('/api/events/mine'),
         api('/api/poc/requests'),
-        api('/api/clubs'),
       ])
       setEvents(eventsData)
       setPocRequests(pocData)
-      setClubs(clubsData)
-      setPocDrafts(
-        Object.fromEntries(
-          pocData.map((req) => [
-            req.subEventId,
-            {
-              budgetHead: req.budgetHead?.toString() || '',
-              budgetItems: (req.budgetItems || []).map((item) => ({
-                description: item.description,
-                amount: item.amount?.toString() || '',
-              })),
-            },
-          ])
-        )
-      )
       setMessage({ type: '', text: '' })
       setPocMessage({ type: '', text: '' })
     } catch (err) {
@@ -75,35 +55,10 @@ function StudentDashboard() {
     e.preventDefault()
     setSubmitting(true)
     setMessage({ type: '', text: '' })
-    const preparedSubEvents = []
-
-    for (const sub of subEvents) {
-      const budgetPayload = prepareBudgetPayload(sub.budgetHead, sub.budgetItems)
-      if (budgetPayload.error) {
-        setSubmitting(false)
-        setMessage({ type: 'error', text: `${sub.name || 'Sub-event'}: ${budgetPayload.error}` })
-        return
-      }
-      if (!sub.clubId) {
-        setSubmitting(false)
-        setMessage({ type: 'error', text: `${sub.name || 'Sub-event'}: Please select a club.` })
-        return
-      }
-
-      preparedSubEvents.push({
-        name: sub.name,
-        budgetHead: budgetPayload.budgetHead,
-        budgetItems: budgetPayload.budgetItems,
-        clubId: Number(sub.clubId),
-        pocUsername: sub.pocUsername,
-        pocName: sub.pocName,
-        pocPhone: sub.pocPhone,
-      })
-    }
     try {
       await api('/api/events', {
         method: 'POST',
-        body: JSON.stringify({ title, description, subEvents: preparedSubEvents }),
+        body: JSON.stringify({ title, description, subEvents }),
       })
       setTitle('')
       setDescription('')
@@ -148,90 +103,13 @@ function StudentDashboard() {
     setSubEvents(updated)
   }
 
-  const prepareBudgetPayload = (budgetHeadValue, itemsValue) => {
-    const headNumber = Number(budgetHeadValue)
-    if (!budgetHeadValue || Number.isNaN(headNumber) || headNumber <= 0) {
-      return { error: 'Please enter a valid budget head total greater than zero.' }
-    }
-    if (!itemsValue || itemsValue.length === 0) {
-      return { error: 'Add at least one budget breakdown item.' }
-    }
-
-    const parsedItems = []
-    let total = 0
-    for (const item of itemsValue) {
-      const amountNumber = Number(item.amount)
-      if (!item.description?.trim()) {
-        return { error: 'Every budget item must have a description.' }
-      }
-      if (Number.isNaN(amountNumber) || amountNumber <= 0) {
-        return { error: 'Each budget item needs an amount greater than zero.' }
-      }
-      parsedItems.push({ description: item.description.trim(), amount: Number(amountNumber.toFixed(2)) })
-      total += amountNumber
-    }
-
-    const roundedTotal = Number(total.toFixed(2))
-    const roundedHead = Number(headNumber.toFixed(2))
-    if (roundedTotal !== roundedHead) {
-      return { error: 'Budget breakdown must add up to the budget head.' }
-    }
-
-    return { budgetHead: roundedHead, budgetItems: parsedItems }
-  }
-
-  const addBudgetItem = (subIndex) => {
-    const updated = [...subEvents]
-    updated[subIndex] = {
-      ...updated[subIndex],
-      budgetItems: [...updated[subIndex].budgetItems, { ...EMPTY_BUDGET_ITEM }],
-    }
-    setSubEvents(updated)
-  }
-
-  const updateBudgetItem = (subIndex, itemIndex, field, value) => {
-    const updated = [...subEvents]
-    const items = [...updated[subIndex].budgetItems]
-    items[itemIndex] = { ...items[itemIndex], [field]: value }
-    updated[subIndex] = { ...updated[subIndex], budgetItems: items }
-    setSubEvents(updated)
-  }
-
-  const removeBudgetItem = (subIndex, itemIndex) => {
-    const updated = [...subEvents]
-    if (updated[subIndex].budgetItems.length === 1) return
-    updated[subIndex] = {
-      ...updated[subIndex],
-      budgetItems: updated[subIndex].budgetItems.filter((_, idx) => idx !== itemIndex),
-    }
-    setSubEvents(updated)
-  }
-
-  const updatePocDraft = (id, updater) => {
-    setPocDrafts((current) => ({
-      ...current,
-      [id]: updater(current[id] || { budgetHead: '', budgetItems: [{ ...EMPTY_BUDGET_ITEM }] }),
-    }))
-  }
-
   const decidePoc = async (id, accept) => {
     setPocWorkingId(id)
     setPocMessage({ type: '', text: '' })
-    let payload = { accept }
-    if (accept) {
-      const draft = pocDrafts[id] || { budgetHead: '', budgetItems: [] }
-      const budgetPayload = prepareBudgetPayload(draft.budgetHead, draft.budgetItems)
-      if (budgetPayload.error) {
-        setPocWorkingId(null)
-        setPocMessage({ type: 'error', text: budgetPayload.error })
-        return
-      }
-      payload = { ...payload, ...budgetPayload }
-    }
     try {
       await api(`/api/poc/requests/${id}/decision`, {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ accept }),
       })
       setPocMessage({ type: 'success', text: accept ? 'You accepted the POC role.' : 'You declined the POC role.' })
       load()
@@ -272,118 +150,18 @@ function StudentDashboard() {
                     </div>
                     <p>{req.eventDescription}</p>
                     <div className="poc-details">
-                      <div>
-                        <p>
-                          <strong>Sub-event:</strong> {req.subEventName}
-                        </p>
-                        <p>
-                          <strong>Club:</strong> {req.clubName}
-                        </p>
-                        <p className="muted">
-                          Requested by {req.requestedBy} · Contact listed: {req.pocName} ({req.pocPhone})
-                        </p>
-                      </div>
-
-                      {(() => {
-                        const draft = pocDrafts[req.subEventId] || {
-                          budgetHead: req.budgetHead?.toString() || '',
-                          budgetItems:
-                            req.budgetItems?.map((item) => ({
-                              description: item.description,
-                              amount: item.amount?.toString() || '',
-                            })) || [{ ...EMPTY_BUDGET_ITEM }],
-                        }
-                        const breakdownItems = draft.budgetItems?.length ? draft.budgetItems : [{ ...EMPTY_BUDGET_ITEM }]
-                        const total = Number(
-                          breakdownItems.reduce((sum, item) => sum + Number(item.amount || 0), 0).toFixed(2)
-                        )
-                        const headNumber = Number(draft.budgetHead || 0)
-                        const totalsMatch = draft.budgetHead && Number(headNumber.toFixed(2)) === total
-
-                        return (
-                          <div className="budget-editor">
-                            <label>
-                              Budget head (total)
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={draft.budgetHead}
-                                onChange={(e) =>
-                                  updatePocDraft(req.subEventId, (current) => ({
-                                    ...current,
-                                    budgetHead: e.target.value,
-                                  }))
-                                }
-                                required
-                              />
-                            </label>
-                            <div className="budget-breakdown">
-                              <div className="subevent-card-header">
-                                <h4>Budget breakdown</h4>
-                                <button
-                                  type="button"
-                                  className="ghost compact"
-                                  onClick={() =>
-                                    updatePocDraft(req.subEventId, (current) => ({
-                                      ...current,
-                                      budgetItems: [...(current.budgetItems || []), { ...EMPTY_BUDGET_ITEM }],
-                                    }))
-                                  }
-                                >
-                                  + Add item
-                                </button>
-                              </div>
-                              {breakdownItems.map((item, idx) => (
-                                <div className="breakdown-row" key={idx}>
-                                  <input
-                                    placeholder="Description"
-                                    value={item.description}
-                                    onChange={(e) =>
-                                      updatePocDraft(req.subEventId, (current) => {
-                                        const updated = [...(current.budgetItems || [])]
-                                        updated[idx] = { ...updated[idx], description: e.target.value }
-                                        return { ...current, budgetItems: updated }
-                                      })
-                                    }
-                                    required
-                                  />
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="Amount"
-                                    value={item.amount}
-                                    onChange={(e) =>
-                                      updatePocDraft(req.subEventId, (current) => {
-                                        const updated = [...(current.budgetItems || [])]
-                                        updated[idx] = { ...updated[idx], amount: e.target.value }
-                                        return { ...current, budgetItems: updated }
-                                      })
-                                    }
-                                    required
-                                  />
-                                  {breakdownItems.length > 1 && (
-                                    <button
-                                      type="button"
-                                      className="ghost compact"
-                                      onClick={() =>
-                                        updatePocDraft(req.subEventId, (current) => ({
-                                          ...current,
-                                          budgetItems: current.budgetItems.filter((_, i) => i !== idx),
-                                        }))
-                                      }
-                                    >
-                                      Remove
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                              <p className={`muted ${totalsMatch ? 'success' : 'warning'}`}>
-                                Breakdown total: {total.toFixed(2)} {totalsMatch ? '✔' : '(must match budget head)'}
-                              </p>
-                            </div>
-                          </div>
-                        )
-                      })()}
+                      <p>
+                        <strong>Sub-event:</strong> {req.subEventName}
+                      </p>
+                      <p>
+                        <strong>Budget head:</strong> {req.budgetHead}
+                      </p>
+                      <p>
+                        <strong>Budget breakdown:</strong> {req.budgetBreakdown}
+                      </p>
+                      <p className="muted">
+                        Requested by {req.requestedBy} · Contact listed: {req.pocName} ({req.pocPhone})
+                      </p>
                     </div>
                     <div className="actions">
                       <button disabled={pocWorkingId === req.subEventId} onClick={() => decidePoc(req.subEventId, true)}>
@@ -474,75 +252,17 @@ function StudentDashboard() {
                       <input value={sub.name} onChange={(e) => updateSubEvent(index, 'name', e.target.value)} required />
                     </label>
                     <label>
-                      Club
-                      <select value={sub.clubId} onChange={(e) => updateSubEvent(index, 'clubId', e.target.value)} required>
-                        <option value="">Select a club</option>
-                        {clubs.map((club) => (
-                          <option key={club.id} value={club.id}>
-                            {club.name}
-                          </option>
-                        ))}
-                      </select>
+                      Budget head (total)
+                      <input value={sub.budgetHead} onChange={(e) => updateSubEvent(index, 'budgetHead', e.target.value)} required />
                     </label>
-                    <div className="budget-editor">
-                      <label>
-                        Budget head (total)
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={sub.budgetHead}
-                          onChange={(e) => updateSubEvent(index, 'budgetHead', e.target.value)}
-                          required
-                        />
-                      </label>
-                      <div className="budget-breakdown">
-                        <div className="subevent-card-header">
-                          <h4>Budget breakdown</h4>
-                          <button type="button" className="ghost compact" onClick={() => addBudgetItem(index)}>
-                            + Add item
-                          </button>
-                        </div>
-                        {sub.budgetItems.map((item, itemIdx) => (
-                          <div className="breakdown-row" key={itemIdx}>
-                            <input
-                              placeholder="Description"
-                              value={item.description}
-                              onChange={(e) => updateBudgetItem(index, itemIdx, 'description', e.target.value)}
-                              required
-                            />
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="Amount"
-                              value={item.amount}
-                              onChange={(e) => updateBudgetItem(index, itemIdx, 'amount', e.target.value)}
-                              required
-                            />
-                            {sub.budgetItems.length > 1 && (
-                              <button
-                                type="button"
-                                className="ghost compact"
-                                onClick={() => removeBudgetItem(index, itemIdx)}
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        {(() => {
-                          const total = Number(
-                            sub.budgetItems.reduce((sum, item) => sum + Number(item.amount || 0), 0).toFixed(2)
-                          )
-                          const headNumber = Number(sub.budgetHead || 0)
-                          const totalsMatch = sub.budgetHead && Number(headNumber.toFixed(2)) === total
-                          return (
-                            <p className={`muted ${totalsMatch ? 'success' : 'warning'}`}>
-                              Breakdown total: {total.toFixed(2)} {totalsMatch ? '✔' : '(must match budget head)'}
-                            </p>
-                          )
-                        })()}
-                      </div>
-                    </div>
+                    <label>
+                      Budget breakdown
+                      <textarea
+                        value={sub.budgetBreakdown}
+                        onChange={(e) => updateSubEvent(index, 'budgetBreakdown', e.target.value)}
+                        required
+                      />
+                    </label>
                     <div className="poc-grid">
                       <label>
                         POC username

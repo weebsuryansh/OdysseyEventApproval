@@ -70,18 +70,6 @@ function ApprovalDashboard({ role }) {
                   <div key={sub.id} className="poc-summary-row">
                     <div>
                       <strong>{sub.name}</strong>
-                      <p className="muted">Club: {sub.clubName}</p>
-                      <p className="muted">Budget: ₹{Number(sub.budgetHead).toFixed(2)}</p>
-                      {sub.budgetItems?.length > 0 && (
-                        <ul className="budget-mini">
-                          {sub.budgetItems.map((item, idx) => (
-                            <li key={idx}>
-                              <span>{item.description}</span>
-                              <span>₹{Number(item.amount).toFixed(2)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
                       <p className="muted">POC: {sub.pocName} ({sub.pocUsername})</p>
                     </div>
                     <span className={`poc-status ${sub.status.toLowerCase()}`}>{sub.status}</span>
