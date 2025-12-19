@@ -274,7 +274,7 @@ function AdminDashboard() {
                   >
                     <div>
                       <p className="muted">Request #{ev.id}</p>
-                      <strong>{ev.title}</strong>
+                      <p className={"muted"}>{ev.title}</p>
                       <p className="muted">{ev.studentName}</p>
                     </div>
                     <span className={`badge stage ${ev.stage?.toLowerCase()}`}>{ev.stage}</span>

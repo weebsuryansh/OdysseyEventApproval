@@ -35,6 +35,9 @@
   gap: 10px;
   max-height: 520px;
   overflow: auto;
+  &:hover{
+    background: var(--surface-muted);
+  }
 }
 
 .event-row {

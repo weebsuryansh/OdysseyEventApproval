@@ -17,6 +17,14 @@
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 18px;
 }
+.add-events {
+  background: var(--button-background-muted);
+  color: white;
+  border-color: transparent;
+  width: 200px;
+  align-self: end;
+}
+
 
 .poc-card {
   border: 1px solid var(--border-subtle);
@@ -108,5 +116,8 @@
 @media (max-width: 900px) {
   .student-layout {
     grid-template-columns: 1fr;
+  }
+  .add-events {
+    align-self: center;
   }
 }

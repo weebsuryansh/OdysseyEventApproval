@@ -467,100 +467,106 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
               <div className="subevent-form">
                 <div className="subevent-header">
                   <h3>Sub-events</h3>
-                  <button type="button" className="ghost" onClick={addSubEvent}>
-                    + Add sub-event
-                  </button>
+
                 </div>
                 {clubs.length === 0 && (
-                  <p className="muted">Add clubs from the admin dashboard to enable selection here.</p>
+                    <p className="muted">Add clubs from the admin dashboard to enable selection here.</p>
                 )}
                 {subEvents.map((sub, index) => (
-                  <div className="subevent-card" key={index}>
-                    <div className="subevent-card-header">
-                      <h4>Sub-event #{index + 1}</h4>
-                      {subEvents.length > 1 && (
-                        <button type="button" className="ghost" onClick={() => removeSubEvent(index)}>
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <label>
-                      Sub-event name
-                      <input value={sub.name} onChange={(e) => updateSubEvent(index, 'name', e.target.value)} required />
-                    </label>
-                    <label>
-                      Club
-                      <select value={sub.clubId} onChange={(e) => updateSubEvent(index, 'clubId', e.target.value)} required>
-                        <option value="">Select a club</option>
-                        {clubs.map((club) => (
-                          <option key={club.id} value={club.id}>
-                            {club.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Budget head (sanctioning authority)
-                      <input
-                        placeholder="Name / designation"
-                        value={sub.budgetHead}
-                        onChange={(e) => updateSubEvent(index, 'budgetHead', e.target.value)}
-                        required
-                      />
-                    </label>
-                    <div className="budget-list">
-                      <div className="budget-list-header">
-                        <strong>Budget breakdown</strong>
-                        <button type="button" className="ghost compact" onClick={() => addBudgetItem(index)}>
-                          + Add line item
-                        </button>
-                      </div>
-                      {(sub.budgetItems || [{ ...EMPTY_BUDGET_ITEM }]).map((item, idx) => (
-                        <div key={idx} className="budget-row">
-                          <input
-                            placeholder="Description"
-                            value={item.description}
-                            onChange={(e) => updateBudgetItem(index, idx, 'description', e.target.value)}
-                            required
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="Amount"
-                            value={item.amount}
-                            onChange={(e) => updateBudgetItem(index, idx, 'amount', e.target.value)}
-                            required
-                          />
-                          {sub.budgetItems?.length > 1 && (
-                            <button type="button" className="ghost compact" onClick={() => removeBudgetItem(index, idx)}>
+                    <div className="subevent-card" key={index}>
+                      <div className="subevent-card-header">
+                        <h4>Sub-event #{index + 1}</h4>
+                        {subEvents.length > 1 && (
+                            <button type="button" className="ghost" onClick={() => removeSubEvent(index)}>
                               Remove
                             </button>
-                          )}
-                        </div>
-                      ))}
-                      <p className="muted total-row">Total: {calcTotal(sub.budgetItems || []).toFixed(2)}</p>
-                    </div>
-                    <div className="poc-grid">
+                        )}
+                      </div>
                       <label>
-                        POC username
+                        Sub-event name
+                        <input value={sub.name} onChange={(e) => updateSubEvent(index, 'name', e.target.value)}
+                               required/>
+                      </label>
+                      <label>
+                        Club
+                        <select value={sub.clubId} onChange={(e) => updateSubEvent(index, 'clubId', e.target.value)}
+                                required>
+                          <option value="">Select a club</option>
+                          {clubs.map((club) => (
+                              <option key={club.id} value={club.id}>
+                                {club.name}
+                              </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Budget head (sanctioning authority)
                         <input
-                          value={sub.pocUsername}
-                          onChange={(e) => updateSubEvent(index, 'pocUsername', e.target.value)}
-                          required
+                            placeholder="Name / designation"
+                            value={sub.budgetHead}
+                            onChange={(e) => updateSubEvent(index, 'budgetHead', e.target.value)}
+                            required
                         />
                       </label>
-                      <label>
-                        POC name
-                        <input value={sub.pocName} onChange={(e) => updateSubEvent(index, 'pocName', e.target.value)} required />
-                      </label>
-                      <label>
-                        POC phone
-                        <input value={sub.pocPhone} onChange={(e) => updateSubEvent(index, 'pocPhone', e.target.value)} required />
-                      </label>
+                      <div className="budget-list">
+                        <div className="budget-list-header">
+                          <strong>Budget breakdown</strong>
+                          <button type="button" className="ghost compact" onClick={() => addBudgetItem(index)}>
+                            + Add line item
+                          </button>
+                        </div>
+                        {(sub.budgetItems || [{...EMPTY_BUDGET_ITEM}]).map((item, idx) => (
+                            <div key={idx} className="budget-row">
+                              <input
+                                  placeholder="Description"
+                                  value={item.description}
+                                  onChange={(e) => updateBudgetItem(index, idx, 'description', e.target.value)}
+                                  required
+                              />
+                              <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="Amount"
+                                  value={item.amount}
+                                  onChange={(e) => updateBudgetItem(index, idx, 'amount', e.target.value)}
+                                  required
+                              />
+                              {sub.budgetItems?.length > 1 && (
+                                  <button type="button" className="ghost compact"
+                                          onClick={() => removeBudgetItem(index, idx)}>
+                                    Remove
+                                  </button>
+                              )}
+                            </div>
+                        ))}
+                        <p className="muted total-row">Total: {calcTotal(sub.budgetItems || []).toFixed(2)}</p>
+                      </div>
+                      <div className="poc-grid">
+                        <label>
+                          POC username
+                          <input
+                              value={sub.pocUsername}
+                              onChange={(e) => updateSubEvent(index, 'pocUsername', e.target.value)}
+                              required
+                          />
+                        </label>
+                        <label>
+                          POC name
+                          <input value={sub.pocName} onChange={(e) => updateSubEvent(index, 'pocName', e.target.value)}
+                                 required/>
+                        </label>
+                        <label>
+                          POC phone
+                          <input value={sub.pocPhone}
+                                 onChange={(e) => updateSubEvent(index, 'pocPhone', e.target.value)} required/>
+                        </label>
+                      </div>
                     </div>
-                  </div>
                 ))}
+                <button type="button" className="add-events" onClick={addSubEvent}>
+                  + Add sub-event
+                </button>
               </div>
 
               <button type="submit" disabled={submitting}>

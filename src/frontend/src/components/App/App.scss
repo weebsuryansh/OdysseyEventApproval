@@ -32,16 +32,13 @@ main {
 }
 
 .auth-hero {
-  position: relative;
-  height: 100vh;
-
+  min-height: 100vh;
   width: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 8vh 4vw 12vh;
   color: #0f5560;
   background: #ffffff;
 }
@@ -49,8 +46,8 @@ main {
 .cloud-band {
   position: absolute;
   inset: 0 0 auto 0;
-  height: 15vh;
-  min-height: 12vh;
+  height: 12vh;
+  min-height: 120px;
 
   width: 100vw;
   object-fit: cover;
@@ -61,7 +58,7 @@ main {
 
 .auth-header {
   position: absolute;
-  top: 5vh;
+  top: 3vh;
   left: 2vw;
   display: flex;
   align-items: center;
@@ -74,7 +71,7 @@ main {
 }
 
 .auth-body {
-  top: 10vh;
+  top: max(10vh);
   width: 100vw;
   position: relative;
   display: flex;
@@ -127,13 +124,21 @@ main {
   text-align: center;
 }
 
-.skyline-graphic {
+.skyline-graphic-frame{
   position: relative;
-  height: auto;
-  width: 50vw;
-  opacity: 0.96;
+  height: 30vh;
+  width: auto;
   pointer-events: none;
   margin-top: 8px;
+  z-index: -1;
+}
+.skyline-graphic {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  object-fit: scale-down;
+  opacity: 0.96;
+  pointer-events: none;
 }
 
 .auth-footer {
@@ -231,7 +236,7 @@ main {
     display: flex;
     flex-direction: column;
     width: 60vw;
-    height: 60vh;
+    height: 40vh;
     justify-content: space-between;
   }
 

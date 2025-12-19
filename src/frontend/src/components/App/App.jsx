@@ -121,7 +121,8 @@ function App() {
                 </div>
                 <LoginPane onLogin={(u) => setUser(u)} />
               </div>
-              <img src={skyline} alt="Campus skyline" className="skyline-graphic" />
+              <div className={"skyline-graphic-frame"}><img src={skyline} alt="Campus skyline" className="skyline-graphic"/></div>
+
             </div>
             <div className="auth-footer">
               Powered by <span className="footer-accent">IT Department</span>

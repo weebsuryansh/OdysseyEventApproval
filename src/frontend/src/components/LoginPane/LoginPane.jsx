@@ -53,10 +53,6 @@ function LoginPane({ onLogin }) {
           Login
         </button>
       </form>
-      <p className="hint">
-        Default accounts are created at startup with password set to &lt;username&gt;123. Examples: admin/admin123, dev/dev123,
-        student/student123, sa/sa123, faculty/faculty123, dean/dean123.
-      </p>
     </div>
   )
 }

@@ -71,7 +71,6 @@ function EventCard({ event, onDownload, downloading, onOpen }) {
             <div key={sub.id} className="preview-chip">
               <div className="chip-head">
                 <span className="chip-name">{sub.name}</span>
-                <span className={`poc-status ${sub.status.toLowerCase()}`}>{sub.status}</span>
               </div>
               <p className="muted">POC: {sub.pocName}</p>
             </div>
@@ -82,11 +81,6 @@ function EventCard({ event, onDownload, downloading, onOpen }) {
         {moreCount > 0 && <span className="pill subtle">+{moreCount} more</span>}
       </div>
 
-      <div className="status-row compact">
-        {steps.map((step) => (
-          <EventStatusPill key={step.label} label={step.label} status={step.value} remark={step.remark} />
-        ))}
-      </div>
     </div>
   )
 }
