@@ -1,27 +1,35 @@
 package org.example.odysseyeventapproval.service;
 
-import org.example.odysseyeventapproval.dto.DecisionRequest;
-import org.example.odysseyeventapproval.dto.EventRequest;
-import org.example.odysseyeventapproval.dto.SubEventRequest;
+import org.example.odysseyeventapproval.dto.*;
 import org.example.odysseyeventapproval.model.*;
 import org.example.odysseyeventapproval.repository.EventRepository;
+import org.example.odysseyeventapproval.repository.ClubRepository;
 import org.example.odysseyeventapproval.repository.SubEventRepository;
 import org.example.odysseyeventapproval.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.RoundingMode;
 
 @Service
 public class EventService {
     private final EventRepository eventRepository;
     private final SubEventRepository subEventRepository;
+    private final ClubRepository clubRepository;
     private final UserRepository userRepository;
 
-    public EventService(EventRepository eventRepository, SubEventRepository subEventRepository, UserRepository userRepository) {
+    public EventService(
+            EventRepository eventRepository,
+            SubEventRepository subEventRepository,
+            ClubRepository clubRepository,
+            UserRepository userRepository
+    ) {
         this.eventRepository = eventRepository;
         this.subEventRepository = subEventRepository;
+        this.clubRepository = clubRepository;
         this.userRepository = userRepository;
     }
 
@@ -78,7 +86,7 @@ public class EventService {
     }
 
     @Transactional
-    public SubEvent decideOnPoc(User poc, Long subEventId, boolean accept) {
+    public SubEvent decideOnPoc(User poc, Long subEventId, PocDecisionRequest request) {
         SubEvent subEvent = subEventRepository.findById(subEventId).orElseThrow();
         if (!subEvent.getPoc().getId().equals(poc.getId())) {
             throw new IllegalStateException("User cannot act on this sub-event");
@@ -87,10 +95,22 @@ public class EventService {
             return subEvent;
         }
 
-        subEvent.setPocStatus(accept ? PocStatus.ACCEPTED : PocStatus.DECLINED);
+        if (request.isAccept()) {
+            List<BudgetItemDto> items = request.getBudgetItems();
+            BigDecimal budgetHead = request.getBudgetHead();
+            if (items == null || items.isEmpty()) {
+                items = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
+            }
+            if (budgetHead == null) {
+                budgetHead = subEvent.getBudgetHead();
+            }
+            applyBudgetDetails(subEvent, budgetHead, items);
+        }
+
+        subEvent.setPocStatus(request.isAccept() ? PocStatus.ACCEPTED : PocStatus.DECLINED);
         Event event = subEvent.getEvent();
 
-        if (!accept) {
+        if (!request.isAccept()) {
             event.setStage(EventStage.REJECTED);
             event.setSaStatus(DecisionStatus.REJECTED);
             event.setSaRemark("Rejected because POC declined");
@@ -191,8 +211,9 @@ public class EventService {
             SubEvent subEvent = new SubEvent();
             subEvent.setEvent(event);
             subEvent.setName(request.getName());
-            subEvent.setBudgetHead(request.getBudgetHead());
-            subEvent.setBudgetBreakdown(request.getBudgetBreakdown());
+            subEvent.setClub(clubRepository.findById(request.getClubId())
+                    .orElseThrow(() -> new IllegalArgumentException("Club not found")));
+            applyBudgetDetails(subEvent, request.getBudgetHead(), request.getBudgetItems());
             subEvent.setPoc(poc);
             subEvent.setPocName(request.getPocName());
             subEvent.setPocPhone(request.getPocPhone());
@@ -219,6 +240,38 @@ public class EventService {
         }
 
         event.setStage(EventStage.APPROVED);
+    }
+
+    private void applyBudgetDetails(SubEvent subEvent, BigDecimal budgetHead, List<BudgetItemDto> budgetItems) {
+        if (budgetHead == null || budgetHead.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Budget head must be greater than zero");
+        }
+        if (budgetItems == null || budgetItems.isEmpty()) {
+            throw new IllegalArgumentException("Please add at least one budget line item");
+        }
+
+        BigDecimal normalizedHead = normalizeAmount(budgetHead);
+        BigDecimal total = BigDecimal.ZERO;
+        for (BudgetItemDto item : budgetItems) {
+            if (item.getDescription() == null || item.getDescription().isBlank()) {
+                throw new IllegalArgumentException("Each budget line needs a description");
+            }
+            if (item.getAmount() == null || item.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Budget line amounts must be positive");
+            }
+            total = total.add(normalizeAmount(item.getAmount()));
+        }
+
+        if (total.compareTo(normalizedHead) != 0) {
+            throw new IllegalArgumentException("Budget breakdown must add up to the budget head total");
+        }
+
+        subEvent.setBudgetHead(normalizedHead);
+        subEvent.setBudgetBreakdown(BudgetItemDto.toJson(budgetItems));
+    }
+
+    private BigDecimal normalizeAmount(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP);
     }
 
     private enum StageTarget {

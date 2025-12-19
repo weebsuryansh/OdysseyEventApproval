@@ -1,7 +1,9 @@
 package org.example.odysseyeventapproval.config;
 
+import org.example.odysseyeventapproval.dto.ClubRequest;
 import org.example.odysseyeventapproval.dto.UserCreateRequest;
 import org.example.odysseyeventapproval.model.UserRole;
+import org.example.odysseyeventapproval.service.ClubService;
 import org.example.odysseyeventapproval.service.UserAdminService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
@@ -10,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class DataInitializer {
     @Bean
-    ApplicationRunner seedDefaults(UserAdminService userAdminService) {
+    ApplicationRunner seedDefaults(UserAdminService userAdminService, ClubService clubService) {
         return args -> {
             createIfMissing(userAdminService, "admin", "Administrator", defaultPassword("admin"), UserRole.ADMIN);
             createIfMissing(userAdminService, "dev", "Developer", defaultPassword("dev"), UserRole.DEV);
@@ -18,6 +20,8 @@ public class DataInitializer {
             createIfMissing(userAdminService, "sa", "SA Office", defaultPassword("sa"), UserRole.SA_OFFICE);
             createIfMissing(userAdminService, "faculty", "Faculty Coordinator", defaultPassword("faculty"), UserRole.FACULTY_COORDINATOR);
             createIfMissing(userAdminService, "dean", "Dean", defaultPassword("dean"), UserRole.DEAN);
+
+            ensureDefaultClubs(clubService);
         };
     }
 
@@ -39,5 +43,21 @@ public class DataInitializer {
 
     private String defaultPassword(String username) {
         return username + "123";
+    }
+
+    private void ensureDefaultClubs(ClubService clubService) {
+        try {
+            ClubRequest club = new ClubRequest();
+            club.setName("Cultural Club");
+            clubService.create(club);
+        } catch (Exception ignored) {
+        }
+
+        try {
+            ClubRequest club = new ClubRequest();
+            club.setName("Tech Club");
+            clubService.create(club);
+        } catch (Exception ignored) {
+        }
     }
 }
