@@ -30,3 +30,20 @@
   align-items: center;
   gap: 10px;
 }
+
+.budget-mini {
+  list-style: none;
+  padding-left: 0;
+  margin: 6px 0;
+  display: grid;
+  gap: 4px;
+}
+
+.budget-mini li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
