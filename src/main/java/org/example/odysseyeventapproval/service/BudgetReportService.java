@@ -62,7 +62,7 @@ public class BudgetReportService {
 
     private void writeTableHeader(PageState state) throws IOException {
         writeText(state, repeat('=', 95), FONT_COURIER);
-        writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", "Sub-Event", "POC", "Phone", "Budget Head", "Total (₹)"), FONT_COURIER_BOLD);
+        writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", "Sub-Event", "POC", "Phone", "Budget Head", "Total (INR)"), FONT_COURIER_BOLD);
         writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", repeat('-', 12), repeat('-', 8), repeat('-', 8), repeat('-', 10), repeat('-', 10)), FONT_COURIER);
     }
 
