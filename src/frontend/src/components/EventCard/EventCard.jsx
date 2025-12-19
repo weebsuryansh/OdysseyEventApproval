@@ -1,7 +1,7 @@
 import EventStatusPill from '../EventStatusPill/EventStatusPill'
 import './EventCard.scss'
 
-function EventCard({ event, onDownload, downloading }) {
+function EventCard({ event, onDownload, downloading, onOpen }) {
   const steps = [
     { label: 'SA Office', value: event.saStatus, remark: event.saRemark },
     { label: 'Faculty', value: event.facultyStatus, remark: event.facultyRemark },
@@ -14,10 +14,22 @@ function EventCard({ event, onDownload, downloading }) {
   const totalBudget = pocStatuses.reduce((sum, sub) => sum + Number(sub.budgetTotal ?? calcTotal(sub.budgetItems)), 0)
 
   const openDetails = () => {
-    const url = new URL(window.location.href)
-    url.searchParams.set('eventId', event.id)
-    window.open(url.toString(), '_blank', 'noopener,noreferrer')
+    if (onOpen) {
+      onOpen(event.id)
+      return
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    params.set('eventId', event.id)
+    const newQuery = params.toString()
+    const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`
+    window.history.pushState({}, '', newUrl)
   }
+
+  const descriptionSnippet =
+    event.description && event.description.length > 140
+      ? `${event.description.slice(0, 140)}…`
+      : event.description
 
   const previewSubs = pocStatuses.slice(0, 3)
   const moreCount = pocStatuses.length - previewSubs.length
@@ -26,29 +38,34 @@ function EventCard({ event, onDownload, downloading }) {
     <div className="event-card card-surface">
       <div className="card-header">
         <div className="card-title">
-          <p className="muted small-label">Request #{event.id}</p>
-          <h3>{event.title}</h3>
-          <p className="muted description">{event.description}</p>
-          <div className="meta-row">
+          <div className="title-row">
+            <h3>{event.title}</h3>
             <span className={`badge stage ${event.stage?.toLowerCase()}`}>{event.stage}</span>
-            <span className="pill subtle">Sub-events: {pocStatuses.length}</span>
-            {event.studentName && <span className="pill subtle">By {event.studentName}</span>}
-            <span className="pill subtle">Budget: ₹{formatAmount(totalBudget)}</span>
+          </div>
+          <p className="muted small-label">
+            Request #{event.id}
+            {event.studentName ? ` · ${event.studentName}` : ''}
+          </p>
+          {descriptionSnippet && <p className="muted description">{descriptionSnippet}</p>}
+          <div className="meta-row compact">
+            <span className="pill subtle">Sub-events {pocStatuses.length}</span>
+            <span className="pill subtle">Budget ₹{formatAmount(totalBudget)}</span>
+            {event.clubName && <span className="pill subtle">{event.clubName}</span>}
           </div>
         </div>
-        <div className="card-actions">
+        <div className="card-actions compact">
           {onDownload && (
             <button className="ghost compact" onClick={() => onDownload(event)} disabled={downloading}>
-              {downloading ? 'Preparing PDF...' : 'Download budget PDF'}
+              {downloading ? 'Preparing PDF...' : 'Budget PDF'}
             </button>
           )}
           <button className="primary" onClick={openDetails}>
-            Open details
+            View details
           </button>
         </div>
       </div>
 
-      <div className="subevent-preview">
+      <div className="subevent-preview compact">
         {previewSubs.length > 0 ? (
           previewSubs.map((sub) => (
             <div key={sub.id} className="preview-chip">

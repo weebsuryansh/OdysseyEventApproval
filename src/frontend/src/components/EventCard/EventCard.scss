@@ -1,12 +1,12 @@
 .event-card {
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   box-shadow: var(--card-shadow);
   background: var(--surface);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .card-header {
@@ -16,15 +16,21 @@
   gap: 12px;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .card-title h3 {
-  margin: 4px 0 6px;
+  margin: 0 0 6px;
 }
 
 .card-title .description {
-  margin: 0;
+  margin: 4px 0 0;
   color: var(--text-muted);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -41,10 +47,14 @@
   margin-top: 8px;
 }
 
+.meta-row.compact {
+  gap: 6px;
+}
+
 .pill.subtle {
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 5px 9px;
   background: var(--surface-muted);
   color: var(--text-muted);
 }
@@ -56,25 +66,32 @@
   align-items: flex-end;
 }
 
+.card-actions.compact {
+  gap: 6px;
+}
+
 .subevent-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
   padding: 10px;
   background: var(--surface-muted);
   border-radius: 12px;
   border: 1px dashed var(--border-subtle);
 }
 
+.subevent-preview.compact {
+  padding: 10px 12px;
+}
+
 .preview-chip {
-  min-width: 180px;
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 10px;
   background: var(--surface);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .chip-head {
@@ -116,8 +133,9 @@
 
 .status-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .status-row.compact {

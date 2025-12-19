@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AdminDashboard from '../AdminDashboard/AdminDashboard'
 import ApprovalDashboard from '../ApprovalDashboard/ApprovalDashboard'
 import EventDetail from '../EventDetail/EventDetail'
@@ -45,6 +45,15 @@ function App() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
   }
 
+  const openEventDetail = useCallback((eventId) => {
+    setDetailEventId(eventId)
+    const params = new URLSearchParams(window.location.search)
+    params.set('eventId', eventId)
+    const newQuery = params.toString()
+    const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`
+    window.history.pushState({}, '', newUrl)
+  }, [])
+
   const clearDetailEvent = () => {
     const params = new URLSearchParams(window.location.search)
     params.delete('eventId')
@@ -56,12 +65,26 @@ function App() {
 
   const dashboardContent = useMemo(() => {
     if (!user) return null
-    if (detailEventId) return <EventDetail eventId={detailEventId} user={user} onBack={clearDetailEvent} />
-    if (user.role === 'STUDENT') return <StudentDashboard />
-    if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role)) return <ApprovalDashboard role={user.role} />
+    if (detailEventId)
+      return (
+        <div className="tabbed-detail">
+          <div className="inline-tabs">
+            <button className="tab-chip" onClick={clearDetailEvent}>
+              Back to dashboard
+            </button>
+            <button className="tab-chip active" disabled>
+              Event detail
+            </button>
+          </div>
+          <EventDetail eventId={detailEventId} user={user} onBack={clearDetailEvent} />
+        </div>
+      )
+    if (user.role === 'STUDENT') return <StudentDashboard onOpenEvent={openEventDetail} />
+    if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role))
+      return <ApprovalDashboard role={user.role} onOpenEvent={openEventDetail} />
     if (['ADMIN', 'DEV'].includes(user.role)) return <AdminDashboard />
     return <div className="panel">Unknown role</div>
-  }, [user, detailEventId])
+  }, [user, detailEventId, openEventDetail])
 
   return (
     <div className="layout">

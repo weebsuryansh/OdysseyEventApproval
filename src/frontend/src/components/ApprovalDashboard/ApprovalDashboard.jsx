@@ -5,7 +5,7 @@ import TabNavigation from '../TabNavigation/TabNavigation'
 import { api, downloadFile } from '../../services/api'
 import './ApprovalDashboard.scss'
 
-function ApprovalDashboard({ role }) {
+function ApprovalDashboard({ role, onOpenEvent = () => {} }) {
   const [events, setEvents] = useState([])
   const [message, setMessage] = useState({ type: '', text: '' })
   const [activeTab, setActiveTab] = useState('pending')
@@ -128,6 +128,7 @@ function ApprovalDashboard({ role }) {
                   event={ev}
                   onDownload={() => downloadBudget(ev.id)}
                   downloading={downloadWorkingId === ev.id}
+                  onOpen={onOpenEvent}
                 />
               ))}
             {!pendingLoading && events.length === 0 && <p className="muted">No pending requests for you right now.</p>}
@@ -189,6 +190,7 @@ function ApprovalDashboard({ role }) {
                   event={ev}
                   onDownload={() => downloadBudget(ev.id)}
                   downloading={downloadWorkingId === ev.id}
+                  onOpen={onOpenEvent}
                 />
               ))
             )}
