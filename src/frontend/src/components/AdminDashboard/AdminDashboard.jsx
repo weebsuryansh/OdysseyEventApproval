@@ -9,6 +9,7 @@ import './AdminDashboard.scss'
 const tabs = [
   { label: 'Override events', value: 'override', variant: 'primary' },
   { label: 'User management', value: 'users' },
+  { label: 'Clubs', value: 'clubs' },
   { label: 'Change password', value: 'password' },
 ]
 
@@ -28,6 +29,10 @@ function AdminDashboard() {
   const [eventsLoading, setEventsLoading] = useState(false)
   const [eventSearch, setEventSearch] = useState('')
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [clubs, setClubs] = useState([])
+  const [clubForm, setClubForm] = useState({ name: '' })
+  const [editingClub, setEditingClub] = useState(null)
+  const [clubMessage, setClubMessage] = useState({ type: '', text: '' })
 
   const loadUsers = async () => {
     try {
@@ -56,9 +61,20 @@ function AdminDashboard() {
     }
   }
 
+  const loadClubs = async () => {
+    try {
+      const data = await api('/api/admin/clubs')
+      setClubs(data)
+      setClubMessage({ type: '', text: '' })
+    } catch (err) {
+      setClubMessage({ type: 'error', text: err.message || 'Could not load clubs.' })
+    }
+  }
+
   useEffect(() => {
     loadUsers()
     loadEvents()
+    loadClubs()
   }, [])
 
   const submit = async (e) => {
@@ -98,6 +114,51 @@ function AdminDashboard() {
       loadEvents()
     } catch (err) {
       setOverrideMessage({ type: 'error', text: err.message || 'Override failed.' })
+    }
+  }
+
+  const submitClub = async (e) => {
+    e.preventDefault()
+    setClubMessage({ type: '', text: '' })
+    if (!clubForm.name.trim()) {
+      setClubMessage({ type: 'error', text: 'Club name is required.' })
+      return
+    }
+    try {
+      if (editingClub) {
+        await api(`/api/admin/clubs/${editingClub.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(clubForm),
+        })
+        setClubMessage({ type: 'success', text: 'Club updated.' })
+      } else {
+        await api('/api/admin/clubs', { method: 'POST', body: JSON.stringify(clubForm) })
+        setClubMessage({ type: 'success', text: 'Club added.' })
+      }
+      setClubForm({ name: '' })
+      setEditingClub(null)
+      loadClubs()
+    } catch (err) {
+      setClubMessage({ type: 'error', text: err.message || 'Unable to save club.' })
+    }
+  }
+
+  const startEditClub = (club) => {
+    setEditingClub(club)
+    setClubForm({ name: club.name })
+  }
+
+  const deleteClub = async (id) => {
+    setClubMessage({ type: '', text: '' })
+    try {
+      await api(`/api/admin/clubs/${id}`, { method: 'DELETE' })
+      if (editingClub?.id === id) {
+        setEditingClub(null)
+        setClubForm({ name: '' })
+      }
+      loadClubs()
+    } catch (err) {
+      setClubMessage({ type: 'error', text: err.message || 'Could not delete club.' })
     }
   }
 
@@ -166,6 +227,74 @@ function AdminDashboard() {
                           <td>{u.role}</td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'clubs' && (
+          <div className="panel card-surface">
+            <div className="panel-header">
+              <h2>Manage clubs</h2>
+              <button className="ghost refresh-button" onClick={loadClubs}>
+                Refresh
+              </button>
+            </div>
+            <Banner status={clubMessage} />
+            <div className="grid">
+              <form className="stack" onSubmit={submitClub}>
+                <h3>{editingClub ? 'Edit club' : 'Add club'}</h3>
+                <label>
+                  Club name
+                  <input value={clubForm.name} onChange={(e) => setClubForm({ name: e.target.value })} required />
+                </label>
+                <div className="actions">
+                  <button type="submit">{editingClub ? 'Update club' : 'Add club'}</button>
+                  {editingClub && (
+                    <button type="button" className="ghost" onClick={() => { setEditingClub(null); setClubForm({ name: '' }) }}>
+                      Cancel edit
+                    </button>
+                  )}
+                </div>
+              </form>
+              <div className="stack">
+                <h3>Existing clubs</h3>
+                <div className="table-wrapper">
+                  <table className="user-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clubs.map((club) => (
+                        <tr key={club.id}>
+                          <td>{club.id}</td>
+                          <td>{club.name}</td>
+                          <td>
+                            <div className="actions">
+                              <button type="button" className="ghost compact" onClick={() => startEditClub(club)}>
+                                Edit
+                              </button>
+                              <button type="button" className="danger compact" onClick={() => deleteClub(club.id)}>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {clubs.length === 0 && (
+                        <tr>
+                          <td colSpan="3" className="muted">
+                            No clubs yet.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

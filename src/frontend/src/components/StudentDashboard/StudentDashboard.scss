@@ -35,7 +35,8 @@
   border-radius: 10px;
   border: 1px dashed var(--border-subtle);
   display: grid;
-  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
 }
 
 .subevent-form {
@@ -58,6 +59,36 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.budget-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.budget-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px dashed var(--border-subtle);
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.breakdown-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.muted.success {
+  color: #15803d;
+}
+
+.muted.warning {
+  color: #b45309;
 }
 
 .subevent-card-header {
