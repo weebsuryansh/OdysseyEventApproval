@@ -59,6 +59,15 @@ public class EventService {
         };
     }
 
+    public Event requireEventForApprover(User approver, Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
+        if (!isStageForRole(approver.getRole(), event.getStage())) {
+            throw new IllegalArgumentException("User cannot view this event at its current stage");
+        }
+        return event;
+    }
+
     @Transactional
     public Event decide(User approver, Long eventId, DecisionRequest request) {
         Event event = eventRepository.findById(eventId).orElseThrow();
@@ -240,6 +249,15 @@ public class EventService {
         }
 
         event.setStage(EventStage.APPROVED);
+    }
+
+    private boolean isStageForRole(UserRole role, EventStage stage) {
+        return switch (role) {
+            case SA_OFFICE -> stage == EventStage.SA_REVIEW;
+            case FACULTY_COORDINATOR -> stage == EventStage.FACULTY_REVIEW;
+            case DEAN -> stage == EventStage.DEAN_REVIEW;
+            default -> false;
+        };
     }
 
     private void applyBudgetDetails(SubEvent subEvent, BigDecimal budgetHead, List<BudgetItemDto> budgetItems) {
