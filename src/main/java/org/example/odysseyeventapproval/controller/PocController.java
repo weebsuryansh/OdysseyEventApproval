@@ -35,7 +35,7 @@ public class PocController {
     @PreAuthorize("hasRole('STUDENT')")
     public PocRequestResponse decide(@PathVariable Long id, @RequestBody PocDecisionRequest request) {
         User poc = currentUserService.requireCurrentUser();
-        SubEvent updated = eventService.decideOnPoc(poc, id, request.isAccept());
+        SubEvent updated = eventService.decideOnPoc(poc, id, request);
         return PocRequestResponse.from(updated);
     }
 }

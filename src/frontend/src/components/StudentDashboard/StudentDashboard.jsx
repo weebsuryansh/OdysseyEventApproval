@@ -7,10 +7,12 @@ import { api } from '../../services/api'
 import './StudentDashboard.scss'
 
 const STAGES_COMPLETE = ['APPROVED', 'REJECTED']
+const EMPTY_BUDGET_ITEM = { description: '', amount: '' }
 const EMPTY_SUB_EVENT = {
   name: '',
+  clubId: '',
   budgetHead: '',
-  budgetBreakdown: '',
+  budgetItems: [{ ...EMPTY_BUDGET_ITEM }],
   pocUsername: '',
   pocName: '',
   pocPhone: '',
@@ -22,6 +24,8 @@ function StudentDashboard() {
   const [subEvents, setSubEvents] = useState([{ ...EMPTY_SUB_EVENT }])
   const [events, setEvents] = useState([])
   const [pocRequests, setPocRequests] = useState([])
+  const [pocEdits, setPocEdits] = useState({})
+  const [clubs, setClubs] = useState([])
   const [message, setMessage] = useState({ type: '', text: '' })
   const [pocMessage, setPocMessage] = useState({ type: '', text: '' })
   const [submitting, setSubmitting] = useState(false)
@@ -32,12 +36,23 @@ function StudentDashboard() {
   const load = async () => {
     setLoading(true)
     try {
-      const [eventsData, pocData] = await Promise.all([
+      const [eventsData, pocData, clubData] = await Promise.all([
         api('/api/events/mine'),
         api('/api/poc/requests'),
+        api('/api/clubs'),
       ])
       setEvents(eventsData)
       setPocRequests(pocData)
+      setClubs(clubData)
+      setPocEdits(
+        pocData.reduce((acc, req) => {
+          acc[req.subEventId] = {
+            budgetHead: req.budgetHead ?? '',
+            budgetItems: req.budgetItems?.length ? req.budgetItems.map((item) => ({ ...item })) : [{ ...EMPTY_BUDGET_ITEM }],
+          }
+          return acc
+        }, {})
+      )
       setMessage({ type: '', text: '' })
       setPocMessage({ type: '', text: '' })
     } catch (err) {
@@ -55,10 +70,26 @@ function StudentDashboard() {
     e.preventDefault()
     setSubmitting(true)
     setMessage({ type: '', text: '' })
+
+    const budgetError = validateSubEvents()
+    if (budgetError) {
+      setMessage({ type: 'error', text: budgetError })
+      setSubmitting(false)
+      return
+    }
     try {
+      const payload = subEvents.map((sub) => ({
+        ...sub,
+        clubId: Number(sub.clubId),
+        budgetHead: Number(sub.budgetHead),
+        budgetItems: sub.budgetItems.map((item) => ({
+          description: item.description,
+          amount: Number(item.amount),
+        })),
+      }))
       await api('/api/events', {
         method: 'POST',
-        body: JSON.stringify({ title, description, subEvents }),
+        body: JSON.stringify({ title, description, subEvents: payload }),
       })
       setTitle('')
       setDescription('')
@@ -91,6 +122,30 @@ function StudentDashboard() {
     setSubEvents([...subEvents, { ...EMPTY_SUB_EVENT }])
   }
 
+  const addBudgetItem = (subIndex) => {
+    const updated = [...subEvents]
+    const items = [...(updated[subIndex].budgetItems || [])]
+    items.push({ ...EMPTY_BUDGET_ITEM })
+    updated[subIndex] = { ...updated[subIndex], budgetItems: items }
+    setSubEvents(updated)
+  }
+
+  const updateBudgetItem = (subIndex, itemIndex, field, value) => {
+    const updated = [...subEvents]
+    const items = [...(updated[subIndex].budgetItems || [])]
+    items[itemIndex] = { ...items[itemIndex], [field]: value }
+    updated[subIndex] = { ...updated[subIndex], budgetItems: items }
+    setSubEvents(updated)
+  }
+
+  const removeBudgetItem = (subIndex, itemIndex) => {
+    const updated = [...subEvents]
+    const items = [...(updated[subIndex].budgetItems || [])]
+    if (items.length === 1) return
+    updated[subIndex] = { ...updated[subIndex], budgetItems: items.filter((_, idx) => idx !== itemIndex) }
+    setSubEvents(updated)
+  }
+
   const updateSubEvent = (index, field, value) => {
     const updated = [...subEvents]
     updated[index] = { ...updated[index], [field]: value }
@@ -103,13 +158,51 @@ function StudentDashboard() {
     setSubEvents(updated)
   }
 
+  const calcTotal = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+
+  const validateSubEvents = () => {
+    for (const [index, sub] of subEvents.entries()) {
+      if (!sub.clubId) {
+        return `Please pick a club for sub-event #${index + 1}`
+      }
+      const head = Number(sub.budgetHead)
+      if (!head || head <= 0) {
+        return `Budget head must be greater than zero for sub-event #${index + 1}`
+      }
+      if (!sub.budgetItems?.length) {
+        return `Add at least one budget line for sub-event #${index + 1}`
+      }
+      const total = calcTotal(sub.budgetItems)
+      if (Math.abs(total - head) > 0.01) {
+        return `Budget breakdown for sub-event #${index + 1} should add up to ${head.toFixed(2)}`
+      }
+    }
+    return ''
+  }
+
   const decidePoc = async (id, accept) => {
     setPocWorkingId(id)
     setPocMessage({ type: '', text: '' })
     try {
+      const current = pocEdits[id]
+      if (accept) {
+        const head = Number(current?.budgetHead)
+        const total = calcTotal(current?.budgetItems)
+        if (!head || Math.abs(total - head) > 0.01) {
+          setPocMessage({ type: 'error', text: 'Please make sure the budget breakdown adds up before approving.' })
+          setPocWorkingId(null)
+          return
+        }
+      }
       await api(`/api/poc/requests/${id}/decision`, {
         method: 'POST',
-        body: JSON.stringify({ accept }),
+        body: JSON.stringify({
+          accept,
+          budgetHead: accept ? Number(current?.budgetHead) : null,
+          budgetItems: accept
+            ? current?.budgetItems?.map((item) => ({ description: item.description, amount: Number(item.amount) }))
+            : [],
+        }),
       })
       setPocMessage({ type: 'success', text: accept ? 'You accepted the POC role.' : 'You declined the POC role.' })
       load()
@@ -118,6 +211,34 @@ function StudentDashboard() {
     } finally {
       setPocWorkingId(null)
     }
+  }
+
+  const updatePocEdit = (id, field, value) => {
+    setPocEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+  }
+
+  const updatePocBudgetItem = (id, index, field, value) => {
+    setPocEdits((prev) => {
+      const budget = prev[id]?.budgetItems || [{ ...EMPTY_BUDGET_ITEM }]
+      const items = [...budget]
+      items[index] = { ...items[index], [field]: value }
+      return { ...prev, [id]: { ...prev[id], budgetItems: items } }
+    })
+  }
+
+  const addPocBudgetItem = (id) => {
+    setPocEdits((prev) => {
+      const budget = prev[id]?.budgetItems || []
+      return { ...prev, [id]: { ...prev[id], budgetItems: [...budget, { ...EMPTY_BUDGET_ITEM }] } }
+    })
+  }
+
+  const removePocBudgetItem = (id, index) => {
+    setPocEdits((prev) => {
+      const budget = prev[id]?.budgetItems || []
+      if (budget.length <= 1) return prev
+      return { ...prev, [id]: { ...prev[id], budgetItems: budget.filter((_, i) => i !== index) } }
+    })
   }
 
   return (
@@ -139,44 +260,95 @@ function StudentDashboard() {
               <Banner status={pocMessage} />
               {loading && <p className="muted">Loading your POC requests...</p>}
               {!loading &&
-                pocRequests.map((req) => (
-                  <div key={req.subEventId} className="poc-card">
-                    <div className="card-header">
-                      <div>
-                        <p className="muted">Event #{req.eventId}</p>
-                        <h3>{req.eventTitle}</h3>
+                pocRequests.map((req) => {
+                  const current = pocEdits[req.subEventId] || {
+                    budgetHead: req.budgetHead ?? '',
+                    budgetItems: req.budgetItems ?? [],
+                  }
+
+                  return (
+                    <div key={req.subEventId} className="poc-card">
+                      <div className="card-header">
+                        <div>
+                          <p className="muted">Event #{req.eventId}</p>
+                          <h3>{req.eventTitle}</h3>
+                        </div>
+                        <span className="badge stage poc">Awaiting your response</span>
                       </div>
-                      <span className="badge stage poc">Awaiting your response</span>
+                      <p>{req.eventDescription}</p>
+                      <div className="poc-details">
+                        <p>
+                          <strong>Sub-event:</strong> {req.subEventName}
+                        </p>
+                        <p>
+                          <strong>Club:</strong> {req.clubName}
+                        </p>
+                        <label>
+                          Budget head (total)
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={current.budgetHead}
+                            onChange={(e) => updatePocEdit(req.subEventId, 'budgetHead', e.target.value)}
+                          />
+                        </label>
+                        <div className="budget-list">
+                          <div className="budget-list-header">
+                            <strong>Budget breakdown</strong>
+                            <button type="button" className="ghost compact" onClick={() => addPocBudgetItem(req.subEventId)}>
+                              + Add line
+                            </button>
+                          </div>
+                          {(current.budgetItems || [{ ...EMPTY_BUDGET_ITEM }]).map((item, idx) => (
+                            <div key={idx} className="budget-row">
+                              <input
+                                placeholder="Description"
+                                value={item.description || ''}
+                                onChange={(e) => updatePocBudgetItem(req.subEventId, idx, 'description', e.target.value)}
+                              />
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Amount"
+                                value={item.amount}
+                                onChange={(e) => updatePocBudgetItem(req.subEventId, idx, 'amount', e.target.value)}
+                              />
+                              {current.budgetItems?.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="ghost compact"
+                                  onClick={() => removePocBudgetItem(req.subEventId, idx)}
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <p className="muted total-row">
+                            Total: {calcTotal(current.budgetItems || []).toFixed(2)} / {Number(current.budgetHead || 0).toFixed(2)}
+                          </p>
+                        </div>
+                        <p className="muted">
+                          Requested by {req.requestedBy} · Contact listed: {req.pocName} ({req.pocPhone})
+                        </p>
+                      </div>
+                      <div className="actions">
+                        <button disabled={pocWorkingId === req.subEventId} onClick={() => decidePoc(req.subEventId, true)}>
+                          {pocWorkingId === req.subEventId ? 'Sending...' : 'Accept'}
+                        </button>
+                        <button
+                          className="danger"
+                          disabled={pocWorkingId === req.subEventId}
+                          onClick={() => decidePoc(req.subEventId, false)}
+                        >
+                          Decline
+                        </button>
+                      </div>
                     </div>
-                    <p>{req.eventDescription}</p>
-                    <div className="poc-details">
-                      <p>
-                        <strong>Sub-event:</strong> {req.subEventName}
-                      </p>
-                      <p>
-                        <strong>Budget head:</strong> {req.budgetHead}
-                      </p>
-                      <p>
-                        <strong>Budget breakdown:</strong> {req.budgetBreakdown}
-                      </p>
-                      <p className="muted">
-                        Requested by {req.requestedBy} · Contact listed: {req.pocName} ({req.pocPhone})
-                      </p>
-                    </div>
-                    <div className="actions">
-                      <button disabled={pocWorkingId === req.subEventId} onClick={() => decidePoc(req.subEventId, true)}>
-                        {pocWorkingId === req.subEventId ? 'Sending...' : 'Accept'}
-                      </button>
-                      <button
-                        className="danger"
-                        disabled={pocWorkingId === req.subEventId}
-                        onClick={() => decidePoc(req.subEventId, false)}
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               {!loading && pocRequests.length === 0 && <p className="muted">No POC confirmations are waiting on you.</p>}
             </div>
 
@@ -237,6 +409,9 @@ function StudentDashboard() {
                     + Add sub-event
                   </button>
                 </div>
+                {clubs.length === 0 && (
+                  <p className="muted">Add clubs from the admin dashboard to enable selection here.</p>
+                )}
                 {subEvents.map((sub, index) => (
                   <div className="subevent-card" key={index}>
                     <div className="subevent-card-header">
@@ -252,17 +427,60 @@ function StudentDashboard() {
                       <input value={sub.name} onChange={(e) => updateSubEvent(index, 'name', e.target.value)} required />
                     </label>
                     <label>
-                      Budget head (total)
-                      <input value={sub.budgetHead} onChange={(e) => updateSubEvent(index, 'budgetHead', e.target.value)} required />
+                      Club
+                      <select value={sub.clubId} onChange={(e) => updateSubEvent(index, 'clubId', e.target.value)} required>
+                        <option value="">Select a club</option>
+                        {clubs.map((club) => (
+                          <option key={club.id} value={club.id}>
+                            {club.name}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     <label>
-                      Budget breakdown
-                      <textarea
-                        value={sub.budgetBreakdown}
-                        onChange={(e) => updateSubEvent(index, 'budgetBreakdown', e.target.value)}
+                      Budget head (total)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={sub.budgetHead}
+                        onChange={(e) => updateSubEvent(index, 'budgetHead', e.target.value)}
                         required
                       />
                     </label>
+                    <div className="budget-list">
+                      <div className="budget-list-header">
+                        <strong>Budget breakdown</strong>
+                        <button type="button" className="ghost compact" onClick={() => addBudgetItem(index)}>
+                          + Add line item
+                        </button>
+                      </div>
+                      {(sub.budgetItems || [{ ...EMPTY_BUDGET_ITEM }]).map((item, idx) => (
+                        <div key={idx} className="budget-row">
+                          <input
+                            placeholder="Description"
+                            value={item.description}
+                            onChange={(e) => updateBudgetItem(index, idx, 'description', e.target.value)}
+                            required
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Amount"
+                            value={item.amount}
+                            onChange={(e) => updateBudgetItem(index, idx, 'amount', e.target.value)}
+                            required
+                          />
+                          {sub.budgetItems?.length > 1 && (
+                            <button type="button" className="ghost compact" onClick={() => removeBudgetItem(index, idx)}>
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <p className="muted total-row">Total: {calcTotal(sub.budgetItems || []).toFixed(2)}</p>
+                    </div>
                     <div className="poc-grid">
                       <label>
                         POC username

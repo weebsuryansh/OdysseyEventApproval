@@ -29,6 +29,39 @@
   gap: 8px;
 }
 
+.budget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.budget-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.budget-row {
+  display: grid;
+  grid-template-columns: 1fr 140px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.total-row {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .budget-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .poc-details {
   background: var(--surface);
   padding: 10px;
