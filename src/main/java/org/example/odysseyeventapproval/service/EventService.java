@@ -6,6 +6,7 @@ import org.example.odysseyeventapproval.repository.EventRepository;
 import org.example.odysseyeventapproval.repository.ClubRepository;
 import org.example.odysseyeventapproval.repository.SubEventRepository;
 import org.example.odysseyeventapproval.repository.UserRepository;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +58,60 @@ public class EventService {
             case DEAN -> eventRepository.findByStageOrderByCreatedAtDesc(EventStage.DEAN_REVIEW);
             default -> List.of();
         };
+    }
+
+    public List<Event> listHistoryForRole(UserRole role, Sort sort) {
+        return switch (role) {
+            case SA_OFFICE -> eventRepository.findBySaStatusNot(DecisionStatus.PENDING, sort);
+            case FACULTY_COORDINATOR -> eventRepository.findByFacultyStatusNot(DecisionStatus.PENDING, sort);
+            case DEAN -> eventRepository.findByDeanStatusNot(DecisionStatus.PENDING, sort);
+            default -> List.of();
+        };
+    }
+
+    public Event requireEventForApprover(User approver, Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
+        if (!isStageForRole(approver.getRole(), event.getStage())) {
+            throw new IllegalArgumentException("User cannot view this event at its current stage");
+        }
+        return event;
+    }
+
+    public Event requireEventForViewer(User user, Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
+
+        if (user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.DEV) {
+            return event;
+        }
+
+        if (user.getRole() == UserRole.STUDENT && event.getStudent().getId().equals(user.getId())) {
+            return event;
+        }
+
+        boolean isPocForEvent = event.getSubEvents().stream()
+                .anyMatch(sub -> sub.getPoc().getId().equals(user.getId()));
+        if (isPocForEvent) {
+            return event;
+        }
+
+        if (user.getRole() == UserRole.SA_OFFICE && (event.getSaStatus() != DecisionStatus.PENDING
+                || event.getStage().ordinal() >= EventStage.SA_REVIEW.ordinal())) {
+            return event;
+        }
+
+        if (user.getRole() == UserRole.FACULTY_COORDINATOR && (event.getFacultyStatus() != DecisionStatus.PENDING
+                || event.getStage().ordinal() >= EventStage.FACULTY_REVIEW.ordinal())) {
+            return event;
+        }
+
+        if (user.getRole() == UserRole.DEAN && (event.getDeanStatus() != DecisionStatus.PENDING
+                || event.getStage().ordinal() >= EventStage.DEAN_REVIEW.ordinal())) {
+            return event;
+        }
+
+        throw new IllegalStateException("User cannot view this event");
     }
 
     @Transactional
@@ -240,6 +295,15 @@ public class EventService {
         }
 
         event.setStage(EventStage.APPROVED);
+    }
+
+    private boolean isStageForRole(UserRole role, EventStage stage) {
+        return switch (role) {
+            case SA_OFFICE -> stage == EventStage.SA_REVIEW;
+            case FACULTY_COORDINATOR -> stage == EventStage.FACULTY_REVIEW;
+            case DEAN -> stage == EventStage.DEAN_REVIEW;
+            default -> false;
+        };
     }
 
     private void applyBudgetDetails(SubEvent subEvent, BigDecimal budgetHead, List<BudgetItemDto> budgetItems) {

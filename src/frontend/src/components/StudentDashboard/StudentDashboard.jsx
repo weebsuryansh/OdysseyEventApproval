@@ -3,7 +3,7 @@ import Banner from '../Banner/Banner'
 import ChangePasswordCard from '../ChangePasswordCard/ChangePasswordCard'
 import EventCard from '../EventCard/EventCard'
 import TabNavigation from '../TabNavigation/TabNavigation'
-import { api } from '../../services/api'
+import { api, downloadFile } from '../../services/api'
 import './StudentDashboard.scss'
 
 const STAGES_COMPLETE = ['APPROVED', 'REJECTED']
@@ -28,10 +28,12 @@ function StudentDashboard() {
   const [clubs, setClubs] = useState([])
   const [message, setMessage] = useState({ type: '', text: '' })
   const [pocMessage, setPocMessage] = useState({ type: '', text: '' })
+  const [downloadMessage, setDownloadMessage] = useState({ type: '', text: '' })
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('home')
   const [pocWorkingId, setPocWorkingId] = useState(null)
+  const [downloadWorkingId, setDownloadWorkingId] = useState(null)
 
   const load = async () => {
     setLoading(true)
@@ -128,6 +130,19 @@ function StudentDashboard() {
     items.push({ ...EMPTY_BUDGET_ITEM })
     updated[subIndex] = { ...updated[subIndex], budgetItems: items }
     setSubEvents(updated)
+  }
+
+  const downloadBudget = async (eventId) => {
+    setDownloadWorkingId(eventId)
+    setDownloadMessage({ type: '', text: '' })
+    try {
+      await downloadFile(`/api/events/${eventId}/budget.pdf`, `event-${eventId}-budget.pdf`)
+      setDownloadMessage({ type: 'success', text: 'Budget PDF downloaded.' })
+    } catch (err) {
+      setDownloadMessage({ type: 'error', text: err.message || 'Could not download budget PDF.' })
+    } finally {
+      setDownloadWorkingId(null)
+    }
   }
 
   const updateBudgetItem = (subIndex, itemIndex, field, value) => {
@@ -362,7 +377,19 @@ function StudentDashboard() {
                   {loading ? 'Refreshing...' : 'Refresh'}
                 </button>
               </div>
-              {loading ? <p className="muted">Loading your requests...</p> : pending.map((ev) => <EventCard key={ev.id} event={ev} />)}
+              <Banner status={downloadMessage} />
+              {loading ? (
+                <p className="muted">Loading your requests...</p>
+              ) : (
+                pending.map((ev) => (
+                  <EventCard
+                    key={ev.id}
+                    event={ev}
+                    onDownload={() => downloadBudget(ev.id)}
+                    downloading={downloadWorkingId === ev.id}
+                  />
+                ))
+              )}
               {!loading && pending.length === 0 && <p className="muted">No pending items right now.</p>}
             </div>
           </div>
@@ -376,7 +403,19 @@ function StudentDashboard() {
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>
-            {loading ? <p className="muted">Loading your requests...</p> : pending.map((ev) => <EventCard key={ev.id} event={ev} />)}
+            <Banner status={downloadMessage} />
+            {loading ? (
+              <p className="muted">Loading your requests...</p>
+            ) : (
+              pending.map((ev) => (
+                <EventCard
+                  key={ev.id}
+                  event={ev}
+                  onDownload={() => downloadBudget(ev.id)}
+                  downloading={downloadWorkingId === ev.id}
+                />
+              ))
+            )}
             {!loading && pending.length === 0 && <p className="muted">No pending items right now.</p>}
           </div>
         )}
@@ -384,7 +423,19 @@ function StudentDashboard() {
         {activeTab === 'past' && (
           <div className="panel card-surface">
             <h2>Past requests</h2>
-            {loading ? <p className="muted">Loading your requests...</p> : past.map((ev) => <EventCard key={ev.id} event={ev} />)}
+            <Banner status={downloadMessage} />
+            {loading ? (
+              <p className="muted">Loading your requests...</p>
+            ) : (
+              past.map((ev) => (
+                <EventCard
+                  key={ev.id}
+                  event={ev}
+                  onDownload={() => downloadBudget(ev.id)}
+                  downloading={downloadWorkingId === ev.id}
+                />
+              ))
+            )}
             {!loading && past.length === 0 && <p className="muted">No past requests yet.</p>}
           </div>
         )}

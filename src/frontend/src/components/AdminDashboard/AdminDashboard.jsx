@@ -3,7 +3,7 @@ import Banner from '../Banner/Banner'
 import ChangePasswordCard from '../ChangePasswordCard/ChangePasswordCard'
 import EventStatusPill from '../EventStatusPill/EventStatusPill'
 import TabNavigation from '../TabNavigation/TabNavigation'
-import { api } from '../../services/api'
+import { api, downloadFile } from '../../services/api'
 import './AdminDashboard.scss'
 
 const tabs = [
@@ -29,6 +29,8 @@ function AdminDashboard() {
   const [eventsLoading, setEventsLoading] = useState(false)
   const [eventSearch, setEventSearch] = useState('')
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [downloadMessage, setDownloadMessage] = useState({ type: '', text: '' })
+  const [downloadWorking, setDownloadWorking] = useState(false)
   const [clubs, setClubs] = useState([])
   const [clubForm, setClubForm] = useState({ name: '' })
   const [clubMessage, setClubMessage] = useState({ type: '', text: '' })
@@ -105,6 +107,20 @@ function AdminDashboard() {
       loadEvents()
     } catch (err) {
       setOverrideMessage({ type: 'error', text: err.message || 'Override failed.' })
+    }
+  }
+
+  const downloadBudget = async () => {
+    if (!selectedEvent) return
+    setDownloadWorking(true)
+    setDownloadMessage({ type: '', text: '' })
+    try {
+      await downloadFile(`/api/events/${selectedEvent.id}/budget.pdf`, `event-${selectedEvent.id}-budget.pdf`)
+      setDownloadMessage({ type: 'success', text: 'Budget PDF downloaded.' })
+    } catch (err) {
+      setDownloadMessage({ type: 'error', text: err.message || 'Could not download budget PDF.' })
+    } finally {
+      setDownloadWorking(false)
     }
   }
 
@@ -278,10 +294,17 @@ function AdminDashboard() {
                       <h2>{selectedEvent.title}</h2>
                       <p className="muted">Student: {selectedEvent.studentName}</p>
                     </div>
-                    <span className={`badge stage ${selectedEvent.stage?.toLowerCase()}`}>{selectedEvent.stage}</span>
+                    <div className="header-actions">
+                      <span className={`badge stage ${selectedEvent.stage?.toLowerCase()}`}>{selectedEvent.stage}</span>
+                      <button className="ghost compact" onClick={downloadBudget} disabled={downloadWorking}>
+                        {downloadWorking ? 'Preparing PDF...' : 'Download budget PDF'}
+                      </button>
+                    </div>
                   </div>
 
                   <p className="muted description">{selectedEvent.description}</p>
+
+                  <Banner status={downloadMessage} />
 
                   <div className="status-grid">
                     <EventStatusPill label="SA Office" status={selectedEvent.saStatus} remark={selectedEvent.saRemark} />

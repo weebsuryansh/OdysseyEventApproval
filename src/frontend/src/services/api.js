@@ -32,3 +32,44 @@ export const api = async (url, options = {}) => {
   if (response.status === 204) return null
   return response.json()
 }
+
+export const downloadFile = async (url, filename) => {
+  const target = url.startsWith('http') ? url : `${API_BASE}${url}`
+  let response
+  try {
+    response = await fetch(target, {
+      credentials: 'include',
+      headers: optionsHeaders(),
+    })
+  } catch (_) {
+    throw new Error('Network error. Please check your connection and try again.')
+  }
+
+  if (!response.ok) {
+    const text = await response.text()
+    let errorMessage = text || 'Request failed'
+    try {
+      const data = text ? JSON.parse(text) : null
+      if (data?.message) errorMessage = data.message
+    } catch (_) {
+      // ignore
+    }
+    const error = new Error(errorMessage)
+    error.status = response.status
+    throw error
+  }
+
+  const blob = await response.blob()
+  const link = document.createElement('a')
+  const href = window.URL.createObjectURL(blob)
+  link.href = href
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(href)
+}
+
+const optionsHeaders = () => ({
+  Accept: 'application/pdf',
+})
