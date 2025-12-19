@@ -83,7 +83,7 @@ function StudentDashboard() {
       const payload = subEvents.map((sub) => ({
         ...sub,
         clubId: Number(sub.clubId),
-        budgetHead: Number(sub.budgetHead),
+        budgetHead: sub.budgetHead.trim(),
         budgetItems: sub.budgetItems.map((item) => ({
           description: item.description,
           amount: Number(item.amount),
@@ -180,16 +180,24 @@ function StudentDashboard() {
       if (!sub.clubId) {
         return `Please pick a club for sub-event #${index + 1}`
       }
-      const head = Number(sub.budgetHead)
-      if (!head || head <= 0) {
-        return `Budget head must be greater than zero for sub-event #${index + 1}`
+      if (!sub.budgetHead || !sub.budgetHead.trim()) {
+        return `Add who is sanctioning the budget for sub-event #${index + 1}`
       }
       if (!sub.budgetItems?.length) {
         return `Add at least one budget line for sub-event #${index + 1}`
       }
-      const total = calcTotal(sub.budgetItems)
-      if (Math.abs(total - head) > 0.01) {
-        return `Budget breakdown for sub-event #${index + 1} should add up to ${head.toFixed(2)}`
+      let hasInvalidLine = false
+      let total = 0
+      for (const item of sub.budgetItems) {
+        const amount = Number(item.amount)
+        if (!item.description?.trim() || !amount || amount <= 0) {
+          hasInvalidLine = true
+          break
+        }
+        total += amount
+      }
+      if (hasInvalidLine || total <= 0) {
+        return `Please provide valid descriptions and positive amounts for sub-event #${index + 1}`
       }
     }
     return ''
@@ -201,10 +209,14 @@ function StudentDashboard() {
     try {
       const current = pocEdits[id]
       if (accept) {
-        const head = Number(current?.budgetHead)
+        const head = current?.budgetHead?.trim()
         const total = calcTotal(current?.budgetItems)
-        if (!head || Math.abs(total - head) > 0.01) {
-          setPocMessage({ type: 'error', text: 'Please make sure the budget breakdown adds up before approving.' })
+        const hasInvalid = (current?.budgetItems || []).some(
+          (item) => !item.description?.trim() || !Number(item.amount) || Number(item.amount) <= 0
+        )
+
+        if (!head || !current?.budgetItems?.length || hasInvalid || total <= 0) {
+          setPocMessage({ type: 'error', text: 'Please provide a sanctioning budget head and valid budget lines before approving.' })
           setPocWorkingId(null)
           return
         }
@@ -213,7 +225,7 @@ function StudentDashboard() {
         method: 'POST',
         body: JSON.stringify({
           accept,
-          budgetHead: accept ? Number(current?.budgetHead) : null,
+          budgetHead: accept ? current?.budgetHead?.trim() : null,
           budgetItems: accept
             ? current?.budgetItems?.map((item) => ({ description: item.description, amount: Number(item.amount) }))
             : [],
@@ -299,11 +311,9 @@ function StudentDashboard() {
                           <strong>Club:</strong> {req.clubName}
                         </p>
                         <label>
-                          Budget head (total)
+                          Budget head (sanctioning authority)
                           <input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                            placeholder="Name / designation"
                             value={current.budgetHead}
                             onChange={(e) => updatePocEdit(req.subEventId, 'budgetHead', e.target.value)}
                           />
@@ -341,9 +351,7 @@ function StudentDashboard() {
                               )}
                             </div>
                           ))}
-                          <p className="muted total-row">
-                            Total: {calcTotal(current.budgetItems || []).toFixed(2)} / {Number(current.budgetHead || 0).toFixed(2)}
-                          </p>
+                          <p className="muted total-row">Total budget: {calcTotal(current.budgetItems || []).toFixed(2)}</p>
                         </div>
                         <p className="muted">
                           Requested by {req.requestedBy} · Contact listed: {req.pocName} ({req.pocPhone})
@@ -489,11 +497,9 @@ function StudentDashboard() {
                       </select>
                     </label>
                     <label>
-                      Budget head (total)
+                      Budget head (sanctioning authority)
                       <input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        placeholder="Name / designation"
                         value={sub.budgetHead}
                         onChange={(e) => updateSubEvent(index, 'budgetHead', e.target.value)}
                         required

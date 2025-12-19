@@ -152,11 +152,11 @@ public class EventService {
 
         if (request.isAccept()) {
             List<BudgetItemDto> items = request.getBudgetItems();
-            BigDecimal budgetHead = request.getBudgetHead();
+            String budgetHead = request.getBudgetHead();
             if (items == null || items.isEmpty()) {
                 items = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
             }
-            if (budgetHead == null) {
+            if (budgetHead == null || budgetHead.isBlank()) {
                 budgetHead = subEvent.getBudgetHead();
             }
             applyBudgetDetails(subEvent, budgetHead, items);
@@ -306,15 +306,14 @@ public class EventService {
         };
     }
 
-    private void applyBudgetDetails(SubEvent subEvent, BigDecimal budgetHead, List<BudgetItemDto> budgetItems) {
-        if (budgetHead == null || budgetHead.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Budget head must be greater than zero");
+    private void applyBudgetDetails(SubEvent subEvent, String budgetHead, List<BudgetItemDto> budgetItems) {
+        if (budgetHead == null || budgetHead.isBlank()) {
+            throw new IllegalArgumentException("Budget head (sanctioning authority) is required");
         }
         if (budgetItems == null || budgetItems.isEmpty()) {
             throw new IllegalArgumentException("Please add at least one budget line item");
         }
 
-        BigDecimal normalizedHead = normalizeAmount(budgetHead);
         BigDecimal total = BigDecimal.ZERO;
         for (BudgetItemDto item : budgetItems) {
             if (item.getDescription() == null || item.getDescription().isBlank()) {
@@ -326,11 +325,8 @@ public class EventService {
             total = total.add(normalizeAmount(item.getAmount()));
         }
 
-        if (total.compareTo(normalizedHead) != 0) {
-            throw new IllegalArgumentException("Budget breakdown must add up to the budget head total");
-        }
-
-        subEvent.setBudgetHead(normalizedHead);
+        subEvent.setBudgetHead(budgetHead.trim());
+        subEvent.setBudgetTotal(total);
         subEvent.setBudgetBreakdown(BudgetItemDto.toJson(budgetItems));
     }
 

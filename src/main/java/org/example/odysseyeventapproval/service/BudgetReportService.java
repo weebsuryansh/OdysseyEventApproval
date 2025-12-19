@@ -37,9 +37,17 @@ public class BudgetReportService {
             writeText(state, " ");
 
             writeTableHeader(state);
+            BigDecimal grandTotal = BigDecimal.ZERO;
             for (SubEvent subEvent : event.getSubEvents()) {
-                writeSubEvent(state, subEvent);
+                List<BudgetItemDto> items = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
+                BigDecimal subTotal = resolveBudgetTotal(subEvent, items);
+                grandTotal = grandTotal.add(subTotal);
+                writeSubEvent(state, subEvent, items, subTotal);
             }
+
+            writeText(state, " ");
+            writeText(state, "Overall totals", FONT_HELVETICA_BOLD, 14f);
+            writeText(state, String.format("Event budget (all sub-events): %s", formatAmount(grandTotal)), FONT_HELVETICA_BOLD);
 
             state.stream.close();
 
@@ -53,36 +61,55 @@ public class BudgetReportService {
     }
 
     private void writeTableHeader(PageState state) throws IOException {
-        writeText(state, String.format("%-28s %-18s %-14s %-12s", "Sub-Event", "POC", "Phone", "Budget Head"), FONT_COURIER_BOLD);
-        writeText(state, String.format("%-28s %-18s %-14s %-12s", repeat('-', 10), repeat('-', 10), repeat('-', 10), repeat('-', 10)), FONT_COURIER);
+        writeText(state, repeat('═', 95), FONT_COURIER);
+        writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", "Sub-Event", "POC", "Phone", "Budget Head", "Total (₹)"), FONT_COURIER_BOLD);
+        writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", repeat('─', 12), repeat('─', 8), repeat('─', 8), repeat('─', 10), repeat('─', 10)), FONT_COURIER);
     }
 
-    private void writeSubEvent(PageState state, SubEvent subEvent) throws IOException {
+    private void writeSubEvent(PageState state, SubEvent subEvent, List<BudgetItemDto> items, BigDecimal total) throws IOException {
         String header = String.format(
-                "%-28s %-18s %-14s %-12s",
-                truncate(subEvent.getName(), 28),
-                truncate(subEvent.getPocName(), 18),
+                "%-26s %-16s %-14s %-19s %12s",
+                truncate(subEvent.getName(), 26),
+                truncate(subEvent.getPocName(), 16),
                 truncate(subEvent.getPocPhone(), 14),
-                formatAmount(subEvent.getBudgetHead())
+                truncate(subEvent.getBudgetHead(), 19),
+                formatAmount(total)
         );
         writeText(state, header, FONT_COURIER);
+        writeText(state, String.format("      Budget head (sanctioned by): %s", truncate(subEvent.getBudgetHead(), 50)));
 
-        List<BudgetItemDto> items = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
         if (items.isEmpty()) {
-            writeText(state, "   - No budget items provided", FONT_COURIER);
+            writeText(state, "         • No budget items provided", FONT_COURIER);
         } else {
-            BigDecimal total = BigDecimal.ZERO;
             for (BudgetItemDto item : items) {
-                total = total.add(item.getAmount() == null ? BigDecimal.ZERO : item.getAmount());
-                String line = String.format("   - %-50s %10s",
-                        truncate(item.getDescription(), 50),
+                String line = String.format("         • %-52s %10s",
+                        truncate(item.getDescription(), 52),
                         formatAmount(item.getAmount()));
                 writeText(state, line, FONT_COURIER);
             }
-            writeText(state, String.format("   Total: %s", formatAmount(total)), FONT_HELVETICA_BOLD);
+            writeText(state, String.format("      Sub-total: %s", formatAmount(total)), FONT_HELVETICA_BOLD);
         }
 
-        writeText(state, " ");
+        writeText(state, repeat('─', 95), FONT_COURIER);
+    }
+
+    private BigDecimal resolveBudgetTotal(SubEvent subEvent, List<BudgetItemDto> items) {
+        BigDecimal total = subEvent.getBudgetTotal();
+        if (total == null || total.compareTo(BigDecimal.ZERO) <= 0) {
+            total = calculateTotal(items);
+        }
+        return total;
+    }
+
+    private BigDecimal calculateTotal(List<BudgetItemDto> items) {
+        BigDecimal total = BigDecimal.ZERO;
+        if (items == null) {
+            return total;
+        }
+        for (BudgetItemDto item : items) {
+            total = total.add(item.getAmount() == null ? BigDecimal.ZERO : item.getAmount());
+        }
+        return total;
     }
 
     private void writeTitle(PageState state, String title) throws IOException {
