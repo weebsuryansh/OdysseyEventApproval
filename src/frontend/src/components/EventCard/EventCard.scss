@@ -16,6 +16,12 @@
   gap: 12px;
 }
 
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -6px;
+}
+
 .event-card h3 {
   margin: 4px 0 8px;
 }

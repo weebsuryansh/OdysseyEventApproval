@@ -8,6 +8,7 @@ import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.service.BudgetReportService;
 import org.example.odysseyeventapproval.service.CurrentUserService;
 import org.example.odysseyeventapproval.service.EventService;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +53,15 @@ public class EventController {
         return eventService.listPendingForRole(approver.getRole()).stream().map(EventResponse::from).collect(Collectors.toList());
     }
 
+    @GetMapping("/history")
+    @PreAuthorize("hasAnyRole('SA_OFFICE','FACULTY_COORDINATOR','DEAN')")
+    public List<EventResponse> historyForRole(@RequestParam(defaultValue = "DESC") String sort) {
+        User approver = currentUserService.requireCurrentUser();
+        Sort.Direction direction = Sort.Direction.fromOptionalString(sort).orElse(Sort.Direction.DESC);
+        Sort ordered = Sort.by(direction, "updatedAt");
+        return eventService.listHistoryForRole(approver.getRole(), ordered).stream().map(EventResponse::from).collect(Collectors.toList());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SA_OFFICE','FACULTY_COORDINATOR','DEAN')")
     public EventResponse pendingDetails(@PathVariable Long id) {
@@ -69,10 +79,10 @@ public class EventController {
     }
 
     @GetMapping(value = "/{id}/budget.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-    @PreAuthorize("hasAnyRole('SA_OFFICE','FACULTY_COORDINATOR','DEAN')")
+    @PreAuthorize("hasAnyRole('STUDENT','SA_OFFICE','FACULTY_COORDINATOR','DEAN','ADMIN','DEV')")
     public ResponseEntity<byte[]> downloadBudgetReport(@PathVariable Long id) {
         User approver = currentUserService.requireCurrentUser();
-        Event event = eventService.requireEventForApprover(approver, id);
+        Event event = eventService.requireEventForViewer(approver, id);
         byte[] pdf = budgetReportService.generateEventBudgetReport(event);
 
         return ResponseEntity.ok()

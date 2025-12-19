@@ -50,6 +50,12 @@
   text-align: left;
 }
 
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .event-row.active {
   border-color: #2563eb;
   box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);

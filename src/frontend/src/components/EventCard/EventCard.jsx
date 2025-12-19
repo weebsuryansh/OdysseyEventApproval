@@ -1,7 +1,7 @@
 import EventStatusPill from '../EventStatusPill/EventStatusPill'
 import './EventCard.scss'
 
-function EventCard({ event }) {
+function EventCard({ event, onDownload, downloading }) {
   const steps = [
     { label: 'SA Office', value: event.saStatus, remark: event.saRemark },
     { label: 'Faculty', value: event.facultyStatus, remark: event.facultyRemark },
@@ -19,6 +19,13 @@ function EventCard({ event }) {
         </div>
         <span className={`badge stage ${event.stage?.toLowerCase()}`}>{event.stage}</span>
       </div>
+      {onDownload && (
+        <div className="card-actions">
+          <button className="ghost compact" onClick={() => onDownload(event)} disabled={downloading}>
+            {downloading ? 'Preparing PDF...' : 'Download budget PDF'}
+          </button>
+        </div>
+      )}
       <p className="muted description">{event.description}</p>
 
       {pocStatuses.length > 0 && (
