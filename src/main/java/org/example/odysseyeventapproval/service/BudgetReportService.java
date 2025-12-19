@@ -68,7 +68,6 @@ public class BudgetReportService {
     }
 
     private void writeSubEvent(PageState state, SubEvent subEvent, List<BudgetItemDto> items, BigDecimal total) throws IOException {
-<<<<<<< Updated upstream
         List<String> nameLines = wrap(subEvent.getName(), 26);
         List<String> pocLines = wrap(subEvent.getPocName(), 16);
         List<String> phoneLines = wrap(subEvent.getPocPhone(), 14);
@@ -88,17 +87,6 @@ public class BudgetReportService {
         }
 
         writeWrappedWithPrefix(state, "      Budget head (sanctioned by): ", subEvent.getBudgetHead(), 90);
-=======
-        String header = String.format(
-                "%-26s %-16s %-14s %-19s %12s",
-                truncate(subEvent.getName(), 26),
-                truncate(subEvent.getPocName(), 16),
-                truncate(subEvent.getPocPhone(), 14),
-                truncate(subEvent.getBudgetHead(), 19),
-                formatAmount(total)
-        );
-        writeText(state, header, FONT_COURIER);
->>>>>>> Stashed changes
 
         if (items.isEmpty()) {
             writeText(state, "         • No budget items provided", FONT_COURIER);
