@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -37,9 +38,17 @@ public class BudgetReportService {
             writeText(state, " ");
 
             writeTableHeader(state);
+            BigDecimal grandTotal = BigDecimal.ZERO;
             for (SubEvent subEvent : event.getSubEvents()) {
-                writeSubEvent(state, subEvent);
+                List<BudgetItemDto> items = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
+                BigDecimal subTotal = resolveBudgetTotal(subEvent, items);
+                grandTotal = grandTotal.add(subTotal);
+                writeSubEvent(state, subEvent, items, subTotal);
             }
+
+            writeText(state, " ");
+            writeText(state, "Overall totals", FONT_HELVETICA_BOLD, 14f);
+            writeText(state, String.format("Event budget (all sub-events): %s", formatAmount(grandTotal)), FONT_HELVETICA_BOLD);
 
             state.stream.close();
 
@@ -53,36 +62,68 @@ public class BudgetReportService {
     }
 
     private void writeTableHeader(PageState state) throws IOException {
-        writeText(state, String.format("%-28s %-18s %-14s %-12s", "Sub-Event", "POC", "Phone", "Budget Head"), FONT_COURIER_BOLD);
-        writeText(state, String.format("%-28s %-18s %-14s %-12s", repeat('-', 10), repeat('-', 10), repeat('-', 10), repeat('-', 10)), FONT_COURIER);
+        writeText(state, repeat('=', 95), FONT_COURIER);
+        writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", "Sub-Event", "POC", "Phone", "Budget Head", "Total (INR)"), FONT_COURIER_BOLD);
+        writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", repeat('-', 12), repeat('-', 8), repeat('-', 8), repeat('-', 10), repeat('-', 10)), FONT_COURIER);
     }
 
-    private void writeSubEvent(PageState state, SubEvent subEvent) throws IOException {
-        String header = String.format(
-                "%-28s %-18s %-14s %-12s",
-                truncate(subEvent.getName(), 28),
-                truncate(subEvent.getPocName(), 18),
-                truncate(subEvent.getPocPhone(), 14),
-                formatAmount(subEvent.getBudgetHead())
-        );
-        writeText(state, header, FONT_COURIER);
+    private void writeSubEvent(PageState state, SubEvent subEvent, List<BudgetItemDto> items, BigDecimal total) throws IOException {
+        List<String> nameLines = wrap(subEvent.getName(), 26);
+        List<String> pocLines = wrap(subEvent.getPocName(), 16);
+        List<String> phoneLines = wrap(subEvent.getPocPhone(), 14);
+        List<String> headLines = wrap(subEvent.getBudgetHead(), 19);
 
-        List<BudgetItemDto> items = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
-        if (items.isEmpty()) {
-            writeText(state, "   - No budget items provided", FONT_COURIER);
-        } else {
-            BigDecimal total = BigDecimal.ZERO;
-            for (BudgetItemDto item : items) {
-                total = total.add(item.getAmount() == null ? BigDecimal.ZERO : item.getAmount());
-                String line = String.format("   - %-50s %10s",
-                        truncate(item.getDescription(), 50),
-                        formatAmount(item.getAmount()));
-                writeText(state, line, FONT_COURIER);
-            }
-            writeText(state, String.format("   Total: %s", formatAmount(total)), FONT_HELVETICA_BOLD);
+        int lineCount = Math.max(Math.max(nameLines.size(), pocLines.size()), Math.max(phoneLines.size(), headLines.size()));
+        for (int i = 0; i < lineCount; i++) {
+            String header = String.format(
+                    "%-26s %-16s %-14s %-19s %12s",
+                    getLine(nameLines, i),
+                    getLine(pocLines, i),
+                    getLine(phoneLines, i),
+                    getLine(headLines, i),
+                    i == 0 ? formatAmount(total) : ""
+            );
+            writeText(state, header, FONT_COURIER);
         }
 
-        writeText(state, " ");
+        writeWrappedWithPrefix(state, "      Budget head (sanctioned by): ", subEvent.getBudgetHead(), 90);
+
+        if (items.isEmpty()) {
+            writeText(state, "         • No budget items provided", FONT_COURIER);
+        } else {
+            for (BudgetItemDto item : items) {
+                List<String> descLines = wrap(item.getDescription(), 52);
+                for (int idx = 0; idx < descLines.size(); idx++) {
+                    String line = String.format("         %s %-52s %10s",
+                            idx == 0 ? "•" : " ",
+                            descLines.get(idx),
+                            idx == 0 ? formatAmount(item.getAmount()) : "");
+                    writeText(state, line, FONT_COURIER);
+                }
+            }
+            writeText(state, String.format("      Sub-total: %s", formatAmount(total)), FONT_HELVETICA_BOLD);
+        }
+
+        writeText(state, repeat('-', 95), FONT_COURIER);
+    }
+
+    private BigDecimal resolveBudgetTotal(SubEvent subEvent, List<BudgetItemDto> items) {
+        BigDecimal total = subEvent.getBudgetTotal();
+        if (total == null || total.compareTo(BigDecimal.ZERO) <= 0) {
+            total = calculateTotal(items);
+        }
+        return total;
+    }
+
+    private BigDecimal calculateTotal(List<BudgetItemDto> items) {
+        BigDecimal total = BigDecimal.ZERO;
+        if (items == null) {
+            return total;
+        }
+        for (BudgetItemDto item : items) {
+            total = total.add(item.getAmount() == null ? BigDecimal.ZERO : item.getAmount());
+        }
+        return total;
     }
 
     private void writeTitle(PageState state, String title) throws IOException {
@@ -145,11 +186,40 @@ public class BudgetReportService {
         return String.valueOf(c).repeat(count);
     }
 
-    private String truncate(String text, int max) {
-        if (text == null) {
+    private List<String> wrap(String text, int max) {
+        if (text == null || text.isBlank()) {
+            return List.of("");
+        }
+
+        String remaining = text.trim();
+        List<String> lines = new ArrayList<>();
+        while (remaining.length() > max) {
+            int breakIndex = remaining.lastIndexOf(' ', max);
+            if (breakIndex <= 0) {
+                breakIndex = max;
+            }
+            lines.add(remaining.substring(0, breakIndex).trim());
+            remaining = remaining.substring(breakIndex).trim();
+        }
+        if (!remaining.isEmpty()) {
+            lines.add(remaining);
+        }
+        return lines.isEmpty() ? List.of("") : lines;
+    }
+
+    private void writeWrappedWithPrefix(PageState state, String prefix, String text, int maxWidth) throws IOException {
+        List<String> lines = wrap(text, Math.max(1, maxWidth - prefix.length()));
+        for (int i = 0; i < lines.size(); i++) {
+            String prefixToUse = i == 0 ? prefix : " ".repeat(prefix.length());
+            writeText(state, prefixToUse + lines.get(i));
+        }
+    }
+
+    private String getLine(List<String> lines, int index) {
+        if (index < 0 || index >= lines.size()) {
             return "";
         }
-        return text.length() <= max ? text : text.substring(0, max - 3) + "...";
+        return lines.get(index);
     }
 
     private PageState newPage(PDDocument document) throws IOException {

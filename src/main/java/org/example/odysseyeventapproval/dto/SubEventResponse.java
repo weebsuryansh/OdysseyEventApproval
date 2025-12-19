@@ -2,13 +2,13 @@ package org.example.odysseyeventapproval.dto;
 
 import org.example.odysseyeventapproval.model.SubEvent;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public class SubEventResponse {
     private Long id;
     private String name;
-    private BigDecimal budgetHead;
+    private String budgetHead;
+    private java.math.BigDecimal budgetTotal;
     private List<BudgetItemDto> budgetItems;
     private Long clubId;
     private String clubName;
@@ -22,6 +22,7 @@ public class SubEventResponse {
         response.id = subEvent.getId();
         response.name = subEvent.getName();
         response.budgetHead = subEvent.getBudgetHead();
+        response.budgetTotal = subEvent.getBudgetTotal();
         response.budgetItems = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
         response.clubId = subEvent.getClub().getId();
         response.clubName = subEvent.getClub().getName();
@@ -40,8 +41,12 @@ public class SubEventResponse {
         return name;
     }
 
-    public BigDecimal getBudgetHead() {
+    public String getBudgetHead() {
         return budgetHead;
+    }
+
+    public java.math.BigDecimal getBudgetTotal() {
+        return budgetTotal;
     }
 
     public List<BudgetItemDto> getBudgetItems() {

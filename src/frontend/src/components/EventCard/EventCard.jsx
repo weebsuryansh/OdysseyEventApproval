@@ -9,6 +9,8 @@ function EventCard({ event, onDownload, downloading }) {
   ]
 
   const pocStatuses = event.subEvents || []
+  const calcTotal = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+  const formatAmount = (value) => Number(value || 0).toFixed(2)
 
   return (
     <div className="event-card card-surface">
@@ -41,6 +43,7 @@ function EventCard({ event, onDownload, downloading }) {
                   </p>
                   <p className="muted">Club: {sub.clubName}</p>
                   <p className="muted">Budget head: {sub.budgetHead}</p>
+                  <p className="muted">Total budget: {formatAmount(sub.budgetTotal ?? calcTotal(sub.budgetItems))}</p>
                   {sub.budgetItems?.length > 0 && (
                     <ul className="budget-mini">
                       {sub.budgetItems.map((item, idx) => (

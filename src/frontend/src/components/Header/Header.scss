@@ -6,6 +6,10 @@
   background: #0c8c97;
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  inset-inline: 0;
+  z-index: 1200;
 }
 
 .brand {

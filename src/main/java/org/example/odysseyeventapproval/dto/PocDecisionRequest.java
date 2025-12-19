@@ -1,11 +1,10 @@
 package org.example.odysseyeventapproval.dto;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public class PocDecisionRequest {
     private boolean accept;
-    private BigDecimal budgetHead;
+    private String budgetHead;
     private List<BudgetItemDto> budgetItems;
 
     public boolean isAccept() {
@@ -16,11 +15,11 @@ public class PocDecisionRequest {
         this.accept = accept;
     }
 
-    public BigDecimal getBudgetHead() {
+    public String getBudgetHead() {
         return budgetHead;
     }
 
-    public void setBudgetHead(BigDecimal budgetHead) {
+    public void setBudgetHead(String budgetHead) {
         this.budgetHead = budgetHead;
     }
 
