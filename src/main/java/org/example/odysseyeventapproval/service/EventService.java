@@ -44,7 +44,7 @@ public class EventService {
     }
 
     public List<Event> listForStudent(User student) {
-        return eventRepository.findByStudentOrderByCreatedAtDesc(student);
+        return eventRepository.findAccessibleToStudent(student);
     }
 
     public List<Event> listAll() {
