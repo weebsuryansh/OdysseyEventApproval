@@ -5,9 +5,12 @@ import org.example.odysseyeventapproval.dto.EventRequest;
 import org.example.odysseyeventapproval.dto.EventResponse;
 import org.example.odysseyeventapproval.model.Event;
 import org.example.odysseyeventapproval.model.User;
-import org.example.odysseyeventapproval.model.UserRole;
+import org.example.odysseyeventapproval.service.BudgetReportService;
 import org.example.odysseyeventapproval.service.CurrentUserService;
 import org.example.odysseyeventapproval.service.EventService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,10 +22,12 @@ import java.util.stream.Collectors;
 public class EventController {
     private final EventService eventService;
     private final CurrentUserService currentUserService;
+    private final BudgetReportService budgetReportService;
 
-    public EventController(EventService eventService, CurrentUserService currentUserService) {
+    public EventController(EventService eventService, CurrentUserService currentUserService, BudgetReportService budgetReportService) {
         this.eventService = eventService;
         this.currentUserService = currentUserService;
+        this.budgetReportService = budgetReportService;
     }
 
     @PostMapping
@@ -47,11 +52,32 @@ public class EventController {
         return eventService.listPendingForRole(approver.getRole()).stream().map(EventResponse::from).collect(Collectors.toList());
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SA_OFFICE','FACULTY_COORDINATOR','DEAN')")
+    public EventResponse pendingDetails(@PathVariable Long id) {
+        User approver = currentUserService.requireCurrentUser();
+        Event event = eventService.requireEventForApprover(approver, id);
+        return EventResponse.from(event);
+    }
+
     @PostMapping("/{id}/decision")
     @PreAuthorize("hasAnyRole('SA_OFFICE','FACULTY_COORDINATOR','DEAN')")
     public EventResponse decide(@PathVariable Long id, @RequestBody DecisionRequest request) {
         User approver = currentUserService.requireCurrentUser();
         Event updated = eventService.decide(approver, id, request);
         return EventResponse.from(updated);
+    }
+
+    @GetMapping(value = "/{id}/budget.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyRole('SA_OFFICE','FACULTY_COORDINATOR','DEAN')")
+    public ResponseEntity<byte[]> downloadBudgetReport(@PathVariable Long id) {
+        User approver = currentUserService.requireCurrentUser();
+        Event event = eventService.requireEventForApprover(approver, id);
+        byte[] pdf = budgetReportService.generateEventBudgetReport(event);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=event-" + id + "-budget.pdf")
+                .body(pdf);
     }
 }
