@@ -32,7 +32,17 @@ function EventCard({ event }) {
                   <p className="muted">
                     POC: {sub.pocName} ({sub.pocUsername}) · {sub.pocPhone}
                   </p>
+                  <p className="muted">Club: {sub.clubName}</p>
                   <p className="muted">Budget head: {sub.budgetHead}</p>
+                  {sub.budgetItems?.length > 0 && (
+                    <ul className="budget-mini">
+                      {sub.budgetItems.map((item, idx) => (
+                        <li key={idx}>
+                          {item.description} — {Number(item.amount || 0).toFixed(2)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <span className={`poc-status ${sub.status.toLowerCase()}`}>{sub.status}</span>
               </div>
