@@ -98,6 +98,9 @@ public class BudgetReportService {
                 formatAmount(total)
         );
         writeText(state, header, FONT_COURIER);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
         if (items.isEmpty()) {
