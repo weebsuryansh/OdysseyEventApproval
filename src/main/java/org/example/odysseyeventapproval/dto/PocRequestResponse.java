@@ -2,7 +2,6 @@ package org.example.odysseyeventapproval.dto;
 
 import org.example.odysseyeventapproval.model.SubEvent;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public class PocRequestResponse {
@@ -11,7 +10,8 @@ public class PocRequestResponse {
     private String eventTitle;
     private String eventDescription;
     private String subEventName;
-    private BigDecimal budgetHead;
+    private String budgetHead;
+    private java.math.BigDecimal budgetTotal;
     private List<BudgetItemDto> budgetItems;
     private String clubName;
     private String pocName;
@@ -27,6 +27,7 @@ public class PocRequestResponse {
         response.eventDescription = subEvent.getEvent().getDescription();
         response.subEventName = subEvent.getName();
         response.budgetHead = subEvent.getBudgetHead();
+        response.budgetTotal = subEvent.getBudgetTotal();
         response.budgetItems = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
         response.clubName = subEvent.getClub().getName();
         response.pocName = subEvent.getPocName();
@@ -56,8 +57,12 @@ public class PocRequestResponse {
         return subEventName;
     }
 
-    public BigDecimal getBudgetHead() {
+    public String getBudgetHead() {
         return budgetHead;
+    }
+
+    public java.math.BigDecimal getBudgetTotal() {
+        return budgetTotal;
     }
 
     public List<BudgetItemDto> getBudgetItems() {
