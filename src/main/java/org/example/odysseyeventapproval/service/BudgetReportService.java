@@ -86,8 +86,6 @@ public class BudgetReportService {
             writeText(state, header, FONT_COURIER);
         }
 
-        writeWrappedWithPrefix(state, "      Budget head (sanctioned by): ", subEvent.getBudgetHead(), 90);
-
         if (items.isEmpty()) {
             writeText(state, "         • No budget items provided", FONT_COURIER);
         } else {
