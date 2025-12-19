@@ -18,7 +18,7 @@ const EMPTY_SUB_EVENT = {
   pocPhone: '',
 }
 
-function StudentDashboard() {
+function StudentDashboard({ onOpenEvent = () => {} }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [subEvents, setSubEvents] = useState([{ ...EMPTY_SUB_EVENT }])
@@ -395,6 +395,7 @@ function StudentDashboard() {
                     event={ev}
                     onDownload={() => downloadBudget(ev.id)}
                     downloading={downloadWorkingId === ev.id}
+                    onOpen={onOpenEvent}
                   />
                 ))
               )}
@@ -421,6 +422,7 @@ function StudentDashboard() {
                   event={ev}
                   onDownload={() => downloadBudget(ev.id)}
                   downloading={downloadWorkingId === ev.id}
+                  onOpen={onOpenEvent}
                 />
               ))
             )}
@@ -441,6 +443,7 @@ function StudentDashboard() {
                   event={ev}
                   onDownload={() => downloadBudget(ev.id)}
                   downloading={downloadWorkingId === ev.id}
+                  onOpen={onOpenEvent}
                 />
               ))
             )}

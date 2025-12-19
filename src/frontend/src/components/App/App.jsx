@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AdminDashboard from '../AdminDashboard/AdminDashboard'
 import ApprovalDashboard from '../ApprovalDashboard/ApprovalDashboard'
+import EventDetail from '../EventDetail/EventDetail'
 import DevHelp from '../DevHelp/DevHelp'
 import Header from '../Header/Header'
 import LoginPane from '../LoginPane/LoginPane'
@@ -14,11 +15,22 @@ import './App.scss'
 function App() {
   const [user, setUser] = useState(null)
   const [theme, setTheme] = useState('light')
+  const [detailEventId, setDetailEventId] = useState(() => new URLSearchParams(window.location.search).get('eventId'))
+  const [detailContext, setDetailContext] = useState({})
 
   useEffect(() => {
     api('/api/auth/me')
       .then((u) => setUser(u))
       .catch(() => setUser(null))
+  }, [])
+
+  useEffect(() => {
+    const handlePop = () => {
+      const params = new URLSearchParams(window.location.search)
+      setDetailEventId(params.get('eventId'))
+    }
+    window.addEventListener('popstate', handlePop)
+    return () => window.removeEventListener('popstate', handlePop)
   }, [])
 
   useEffect(() => {
@@ -34,13 +46,53 @@ function App() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
   }
 
+  const openEventDetail = useCallback((eventId, options = {}) => {
+    setDetailEventId(eventId)
+    setDetailContext(options)
+    const params = new URLSearchParams(window.location.search)
+    params.set('eventId', eventId)
+    const newQuery = params.toString()
+    const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`
+    window.history.pushState({}, '', newUrl)
+  }, [])
+
+  const clearDetailEvent = () => {
+    const params = new URLSearchParams(window.location.search)
+    params.delete('eventId')
+    const newQuery = params.toString()
+    const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`
+    window.history.replaceState({}, '', newUrl)
+    setDetailEventId(null)
+    setDetailContext({})
+  }
+
   const dashboardContent = useMemo(() => {
     if (!user) return null
-    if (user.role === 'STUDENT') return <StudentDashboard />
-    if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role)) return <ApprovalDashboard role={user.role} />
+    if (detailEventId)
+      return (
+        <div className="tabbed-detail">
+          <div className="inline-tabs">
+            <button className="tab-chip" onClick={clearDetailEvent}>
+              Back to dashboard
+            </button>
+            <button className="tab-chip active" disabled>
+              Event detail
+            </button>
+          </div>
+          <EventDetail
+            eventId={detailEventId}
+            user={user}
+            onBack={clearDetailEvent}
+            readOnly={detailContext.readOnly}
+          />
+        </div>
+      )
+    if (user.role === 'STUDENT') return <StudentDashboard onOpenEvent={openEventDetail} />
+    if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role))
+      return <ApprovalDashboard role={user.role} onOpenEvent={openEventDetail} />
     if (['ADMIN', 'DEV'].includes(user.role)) return <AdminDashboard />
     return <div className="panel">Unknown role</div>
-  }, [user])
+  }, [user, detailEventId, openEventDetail, detailContext])
 
   return (
     <div className="layout">

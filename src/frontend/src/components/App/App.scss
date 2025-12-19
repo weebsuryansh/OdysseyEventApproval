@@ -156,6 +156,18 @@ main {
   gap: 16px;
 }
 
+.tabbed-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inline-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
   .content-main,
   .auth-main {
