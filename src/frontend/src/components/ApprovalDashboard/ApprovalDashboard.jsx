@@ -21,6 +21,9 @@ function ApprovalDashboard({ role }) {
   const [downloadMessage, setDownloadMessage] = useState({ type: '', text: '' })
   const [downloadWorkingId, setDownloadWorkingId] = useState(null)
 
+  const calcTotal = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+  const formatAmount = (value) => Number(value || 0).toFixed(2)
+
   const tabs = [
     { label: 'Pending queue', value: 'pending', variant: 'primary' },
     { label: 'History', value: 'history' },
@@ -161,7 +164,8 @@ function ApprovalDashboard({ role }) {
                             <strong>{sub.name}</strong>
                             <p className="muted">POC: {sub.pocName} ({sub.pocUsername})</p>
                             <p className="muted">Club: {sub.clubName}</p>
-                            <p className="muted">Budget head: {Number(sub.budgetHead || 0).toFixed(2)}</p>
+                            <p className="muted">Budget head: {sub.budgetHead}</p>
+                            <p className="muted">Total budget: {formatAmount(sub.budgetTotal ?? calcTotal(sub.budgetItems))}</p>
                             {sub.budgetItems?.length > 0 && (
                               <div className="budget-table">
                                 <div className="budget-table__header">
