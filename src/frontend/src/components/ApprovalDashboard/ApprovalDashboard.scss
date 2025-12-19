@@ -1,7 +1,8 @@
 .approval-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
 }
 
 .queue-card {
@@ -99,4 +100,10 @@
   gap: 14px;
   flex-wrap: wrap;
   margin-bottom: 10px;
+}
+
+@media (max-width: 900px) {
+  .approval-layout {
+    grid-template-columns: 1fr;
+  }
 }

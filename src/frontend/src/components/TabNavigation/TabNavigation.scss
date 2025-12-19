@@ -5,6 +5,7 @@
   position: sticky;
   top: 94px;
   height: max-content;
+  z-index: 1100;
 }
 
 .tab-bottom {
@@ -50,6 +51,7 @@
     position: sticky;
     bottom: 10px;
     background: transparent;
+    z-index: 1100;
   }
 
   .tab-btn {
