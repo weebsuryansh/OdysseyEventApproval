@@ -4,7 +4,7 @@ import EventStatusPill from '../EventStatusPill/EventStatusPill'
 import { api, downloadFile } from '../../services/api'
 import './EventDetail.scss'
 
-function EventDetail({ eventId, user, onBack }) {
+function EventDetail({ eventId, user, onBack, readOnly = false }) {
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState({ type: '', text: '' })
@@ -12,7 +12,7 @@ function EventDetail({ eventId, user, onBack }) {
   const [working, setWorking] = useState(false)
   const [downloadWorking, setDownloadWorking] = useState(false)
 
-  const canAct = ['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user?.role)
+  const canAct = ['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user?.role) && !readOnly
 
   const calcTotal = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
   const formatAmount = (value) => Number(value || 0).toFixed(2)

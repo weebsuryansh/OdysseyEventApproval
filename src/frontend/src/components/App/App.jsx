@@ -16,6 +16,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [theme, setTheme] = useState('light')
   const [detailEventId, setDetailEventId] = useState(() => new URLSearchParams(window.location.search).get('eventId'))
+  const [detailContext, setDetailContext] = useState({})
 
   useEffect(() => {
     api('/api/auth/me')
@@ -45,8 +46,9 @@ function App() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
   }
 
-  const openEventDetail = useCallback((eventId) => {
+  const openEventDetail = useCallback((eventId, options = {}) => {
     setDetailEventId(eventId)
+    setDetailContext(options)
     const params = new URLSearchParams(window.location.search)
     params.set('eventId', eventId)
     const newQuery = params.toString()
@@ -61,6 +63,7 @@ function App() {
     const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`
     window.history.replaceState({}, '', newUrl)
     setDetailEventId(null)
+    setDetailContext({})
   }
 
   const dashboardContent = useMemo(() => {
@@ -76,7 +79,12 @@ function App() {
               Event detail
             </button>
           </div>
-          <EventDetail eventId={detailEventId} user={user} onBack={clearDetailEvent} />
+          <EventDetail
+            eventId={detailEventId}
+            user={user}
+            onBack={clearDetailEvent}
+            readOnly={detailContext.readOnly}
+          />
         </div>
       )
     if (user.role === 'STUDENT') return <StudentDashboard onOpenEvent={openEventDetail} />
@@ -84,7 +92,7 @@ function App() {
       return <ApprovalDashboard role={user.role} onOpenEvent={openEventDetail} />
     if (['ADMIN', 'DEV'].includes(user.role)) return <AdminDashboard />
     return <div className="panel">Unknown role</div>
-  }, [user, detailEventId, openEventDetail])
+  }, [user, detailEventId, openEventDetail, detailContext])
 
   return (
     <div className="layout">

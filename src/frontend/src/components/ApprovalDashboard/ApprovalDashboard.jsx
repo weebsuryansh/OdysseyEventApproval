@@ -128,7 +128,7 @@ function ApprovalDashboard({ role, onOpenEvent = () => {} }) {
                   event={ev}
                   onDownload={() => downloadBudget(ev.id)}
                   downloading={downloadWorkingId === ev.id}
-                  onOpen={onOpenEvent}
+                  onOpen={(id) => onOpenEvent(id)}
                 />
               ))}
             {!pendingLoading && events.length === 0 && <p className="muted">No pending requests for you right now.</p>}
@@ -190,7 +190,7 @@ function ApprovalDashboard({ role, onOpenEvent = () => {} }) {
                   event={ev}
                   onDownload={() => downloadBudget(ev.id)}
                   downloading={downloadWorkingId === ev.id}
-                  onOpen={onOpenEvent}
+                  onOpen={(id) => onOpenEvent(id, { readOnly: true })}
                 />
               ))
             )}
