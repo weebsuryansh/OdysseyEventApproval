@@ -13,8 +13,8 @@ main {
 
 .content-main,
 .auth-main {
-  width: 100%;
-  padding: 32px 28px 40px;
+  width: 100vw;
+  padding: 4vh 2vw 6vh;
 }
 
 .auth-main {
@@ -24,7 +24,7 @@ main {
 }
 
 .page-shell {
-  width: min(1400px, calc(100% - 32px));
+  width: min(92vw, 1400px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -41,7 +41,7 @@ main {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 72px 24px 120px;
+  padding: 8vh 4vw 12vh;
   color: #0f5560;
   background: #ffffff;
 }
@@ -50,9 +50,9 @@ main {
   position: absolute;
   inset: 0 0 auto 0;
   height: 15vh;
-  min-height: 80px;
+  min-height: 12vh;
 
-  width: 100%;
+  width: 100vw;
   object-fit: cover;
   opacity: 0.92;
   pointer-events: none;
@@ -74,8 +74,8 @@ main {
 }
 
 .auth-body {
-  top:10vh;
-  width:100vw;
+  top: 10vh;
+  width: 100vw;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -129,7 +129,7 @@ main {
 
 .skyline-graphic {
   position: relative;
-  height:auto;
+  height: auto;
   width: 50vw;
   opacity: 0.96;
   pointer-events: none;

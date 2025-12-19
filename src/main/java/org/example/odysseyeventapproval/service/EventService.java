@@ -35,7 +35,7 @@ public class EventService {
     }
 
     public List<Event> listForStudent(User student) {
-        return eventRepository.findByStudent(student);
+        return eventRepository.findByStudentOrderByCreatedAtDesc(student);
     }
 
     public List<Event> listAll() {
@@ -44,9 +44,9 @@ public class EventService {
 
     public List<Event> listPendingForRole(UserRole role) {
         return switch (role) {
-            case SA_OFFICE -> eventRepository.findByStage(EventStage.SA_REVIEW);
-            case FACULTY_COORDINATOR -> eventRepository.findByStage(EventStage.FACULTY_REVIEW);
-            case DEAN -> eventRepository.findByStage(EventStage.DEAN_REVIEW);
+            case SA_OFFICE -> eventRepository.findByStageOrderByCreatedAtDesc(EventStage.SA_REVIEW);
+            case FACULTY_COORDINATOR -> eventRepository.findByStageOrderByCreatedAtDesc(EventStage.FACULTY_REVIEW);
+            case DEAN -> eventRepository.findByStageOrderByCreatedAtDesc(EventStage.DEAN_REVIEW);
             default -> List.of();
         };
     }
