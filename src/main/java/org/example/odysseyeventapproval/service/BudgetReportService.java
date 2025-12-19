@@ -3,8 +3,9 @@ package org.example.odysseyeventapproval.service;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.example.odysseyeventapproval.dto.BudgetItemDto;
 import org.example.odysseyeventapproval.model.Event;
 import org.example.odysseyeventapproval.model.SubEvent;
@@ -20,13 +21,17 @@ import java.util.List;
 public class BudgetReportService {
     private static final float MARGIN = 40f;
     private static final float LINE_HEIGHT = 16f;
+    private static final PDType1Font FONT_HELVETICA = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+    private static final PDType1Font FONT_HELVETICA_BOLD = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+    private static final PDType1Font FONT_COURIER = new PDType1Font(Standard14Fonts.FontName.COURIER);
+    private static final PDType1Font FONT_COURIER_BOLD = new PDType1Font(Standard14Fonts.FontName.COURIER_BOLD);
 
     public byte[] generateEventBudgetReport(Event event) {
         try (PDDocument document = new PDDocument()) {
             PageState state = newPage(document);
 
             writeTitle(state, "Event Budget Summary");
-            writeText(state, String.format("Event: %s", event.getTitle()), PDType1Font.HELVETICA_BOLD);
+            writeText(state, String.format("Event: %s", event.getTitle()), FONT_HELVETICA_BOLD);
             writeWrappedText(state, String.format("Description: %s", event.getDescription()));
             writeText(state, String.format("Student Owner: %s", event.getStudent().getDisplayName()));
             writeText(state, " ");
@@ -48,8 +53,8 @@ public class BudgetReportService {
     }
 
     private void writeTableHeader(PageState state) throws IOException {
-        writeText(state, String.format("%-28s %-18s %-14s %-12s", "Sub-Event", "POC", "Phone", "Budget Head"), PDType1Font.COURIER_BOLD);
-        writeText(state, String.format("%-28s %-18s %-14s %-12s", repeat('-', 10), repeat('-', 10), repeat('-', 10), repeat('-', 10)), PDType1Font.COURIER);
+        writeText(state, String.format("%-28s %-18s %-14s %-12s", "Sub-Event", "POC", "Phone", "Budget Head"), FONT_COURIER_BOLD);
+        writeText(state, String.format("%-28s %-18s %-14s %-12s", repeat('-', 10), repeat('-', 10), repeat('-', 10), repeat('-', 10)), FONT_COURIER);
     }
 
     private void writeSubEvent(PageState state, SubEvent subEvent) throws IOException {
@@ -60,11 +65,11 @@ public class BudgetReportService {
                 truncate(subEvent.getPocPhone(), 14),
                 formatAmount(subEvent.getBudgetHead())
         );
-        writeText(state, header, PDType1Font.COURIER);
+        writeText(state, header, FONT_COURIER);
 
         List<BudgetItemDto> items = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
         if (items.isEmpty()) {
-            writeText(state, "   - No budget items provided", PDType1Font.COURIER);
+            writeText(state, "   - No budget items provided", FONT_COURIER);
         } else {
             BigDecimal total = BigDecimal.ZERO;
             for (BudgetItemDto item : items) {
@@ -72,16 +77,16 @@ public class BudgetReportService {
                 String line = String.format("   - %-50s %10s",
                         truncate(item.getDescription(), 50),
                         formatAmount(item.getAmount()));
-                writeText(state, line, PDType1Font.COURIER);
+                writeText(state, line, FONT_COURIER);
             }
-            writeText(state, String.format("   Total: %s", formatAmount(total)), PDType1Font.HELVETICA_BOLD);
+            writeText(state, String.format("   Total: %s", formatAmount(total)), FONT_HELVETICA_BOLD);
         }
 
         writeText(state, " ");
     }
 
     private void writeTitle(PageState state, String title) throws IOException {
-        writeText(state, title, PDType1Font.HELVETICA_BOLD, 18f);
+        writeText(state, title, FONT_HELVETICA_BOLD, 18f);
         writeText(state, " ");
     }
 
@@ -102,7 +107,7 @@ public class BudgetReportService {
     }
 
     private void writeText(PageState state, String text) throws IOException {
-        writeText(state, text, PDType1Font.HELVETICA, 12f);
+        writeText(state, text, FONT_HELVETICA, 12f);
     }
 
     private void writeText(PageState state, String text, org.apache.pdfbox.pdmodel.font.PDFont font) throws IOException {
