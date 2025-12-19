@@ -63,10 +63,10 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SA_OFFICE','FACULTY_COORDINATOR','DEAN')")
-    public EventResponse pendingDetails(@PathVariable Long id) {
-        User approver = currentUserService.requireCurrentUser();
-        Event event = eventService.requireEventForApprover(approver, id);
+    @PreAuthorize("hasAnyRole('STUDENT','SA_OFFICE','FACULTY_COORDINATOR','DEAN','ADMIN','DEV')")
+    public EventResponse viewEvent(@PathVariable Long id) {
+        User viewer = currentUserService.requireCurrentUser();
+        Event event = eventService.requireEventForViewer(viewer, id);
         return EventResponse.from(event);
     }
 

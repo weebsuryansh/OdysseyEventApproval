@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import AdminDashboard from '../AdminDashboard/AdminDashboard'
 import ApprovalDashboard from '../ApprovalDashboard/ApprovalDashboard'
+import EventDetail from '../EventDetail/EventDetail'
 import DevHelp from '../DevHelp/DevHelp'
 import Header from '../Header/Header'
 import LoginPane from '../LoginPane/LoginPane'
@@ -14,11 +15,21 @@ import './App.scss'
 function App() {
   const [user, setUser] = useState(null)
   const [theme, setTheme] = useState('light')
+  const [detailEventId, setDetailEventId] = useState(() => new URLSearchParams(window.location.search).get('eventId'))
 
   useEffect(() => {
     api('/api/auth/me')
       .then((u) => setUser(u))
       .catch(() => setUser(null))
+  }, [])
+
+  useEffect(() => {
+    const handlePop = () => {
+      const params = new URLSearchParams(window.location.search)
+      setDetailEventId(params.get('eventId'))
+    }
+    window.addEventListener('popstate', handlePop)
+    return () => window.removeEventListener('popstate', handlePop)
   }, [])
 
   useEffect(() => {
@@ -34,13 +45,23 @@ function App() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
   }
 
+  const clearDetailEvent = () => {
+    const params = new URLSearchParams(window.location.search)
+    params.delete('eventId')
+    const newQuery = params.toString()
+    const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`
+    window.history.replaceState({}, '', newUrl)
+    setDetailEventId(null)
+  }
+
   const dashboardContent = useMemo(() => {
     if (!user) return null
+    if (detailEventId) return <EventDetail eventId={detailEventId} user={user} onBack={clearDetailEvent} />
     if (user.role === 'STUDENT') return <StudentDashboard />
     if (['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user.role)) return <ApprovalDashboard role={user.role} />
     if (['ADMIN', 'DEV'].includes(user.role)) return <AdminDashboard />
     return <div className="panel">Unknown role</div>
-  }, [user])
+  }, [user, detailEventId])
 
   return (
     <div className="layout">

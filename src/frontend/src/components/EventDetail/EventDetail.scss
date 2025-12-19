@@ -1,0 +1,143 @@
+.event-detail {
+  padding: 22px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  box-shadow: var(--card-shadow);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.detail-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.muted-pill {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.status-row.expanded {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.subevents {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subevent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.subevent-card {
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--card-shadow);
+}
+
+.subevent-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.subevent-budgets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.budget-summary {
+  font-weight: 600;
+}
+
+.budget-table {
+  margin-top: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.budget-table__header,
+.budget-table__row {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.budget-table__header {
+  background: var(--surface-muted);
+  font-weight: 700;
+}
+
+.budget-table__row:nth-child(even) {
+  background: var(--surface-muted);
+}
+
+.decision-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface-muted);
+}
+
+.decision-panel textarea {
+  min-height: 80px;
+}
+
+.decision-panel .actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .detail-header {
+    flex-direction: column;
+  }
+}

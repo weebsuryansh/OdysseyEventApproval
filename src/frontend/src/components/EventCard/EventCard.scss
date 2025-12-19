@@ -6,65 +6,86 @@
   background: var(--surface);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+}
+
+.card-title h3 {
+  margin: 4px 0 6px;
+}
+
+.card-title .description {
+  margin: 0;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.small-label {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pill.subtle {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
 }
 
 .card-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: -6px;
-}
-
-.event-card h3 {
-  margin: 4px 0 8px;
-}
-
-.event-card .muted {
-  margin: 0;
-}
-
-.description {
-  word-break: break-word;
-}
-
-.status-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin: 6px 0 2px;
-}
-
-.subevent-block {
-  border: 1px dashed var(--border-subtle);
-  padding: 10px;
-  border-radius: 12px;
-  background: var(--surface-muted);
-}
-
-.subevent-list {
-  display: flex;
   flex-direction: column;
   gap: 8px;
+  align-items: flex-end;
 }
 
-.subevent-row {
+.subevent-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface-muted);
+  border-radius: 12px;
+  border: 1px dashed var(--border-subtle);
+}
+
+.preview-chip {
+  min-width: 180px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chip-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
 }
 
-.budget-mini {
-  margin: 4px 0 0;
-  padding-left: 18px;
-  color: var(--text-muted);
+.chip-name {
+  font-weight: 600;
 }
 
 .poc-status {
@@ -93,39 +114,12 @@
   border-color: #fcd34d;
 }
 
-.progress {
-  height: 6px;
-  background: #e2e8f0;
-  border-radius: 999px;
-  position: relative;
-  overflow: hidden;
+.status-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
 }
 
-.progress::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 25%;
-  background: linear-gradient(90deg, #2563eb, #6366f1);
-  transition: width 0.3s ease;
-}
-
-.progress[data-stage='POC_REVIEW']::after {
-  width: 15%;
-}
-
-.progress[data-stage='SA_REVIEW']::after {
-  width: 40%;
-}
-
-.progress[data-stage='FACULTY_REVIEW']::after {
-  width: 70%;
-}
-
-.progress[data-stage='DEAN_REVIEW']::after,
-.progress[data-stage='APPROVED']::after,
-.progress[data-stage='REJECTED']::after {
-  width: 100%;
+.status-row.compact {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }

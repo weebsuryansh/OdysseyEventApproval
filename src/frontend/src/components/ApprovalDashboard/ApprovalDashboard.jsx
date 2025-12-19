@@ -7,22 +7,18 @@ import './ApprovalDashboard.scss'
 
 function ApprovalDashboard({ role }) {
   const [events, setEvents] = useState([])
-  const [remarks, setRemarks] = useState({})
   const [message, setMessage] = useState({ type: '', text: '' })
-  const [working, setWorking] = useState(false)
   const [activeTab, setActiveTab] = useState('pending')
   const [history, setHistory] = useState([])
   const [historyTab, setHistoryTab] = useState('APPROVED')
   const [historyMessage, setHistoryMessage] = useState({ type: '', text: '' })
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [pendingLoading, setPendingLoading] = useState(false)
   const [sortOrder, setSortOrder] = useState('DESC')
   const [clubFilter, setClubFilter] = useState('ALL')
   const [clubs, setClubs] = useState([])
   const [downloadMessage, setDownloadMessage] = useState({ type: '', text: '' })
   const [downloadWorkingId, setDownloadWorkingId] = useState(null)
-
-  const calcTotal = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-  const formatAmount = (value) => Number(value || 0).toFixed(2)
 
   const tabs = [
     { label: 'Pending queue', value: 'pending', variant: 'primary' },
@@ -30,12 +26,15 @@ function ApprovalDashboard({ role }) {
   ]
 
   const load = async () => {
+    setPendingLoading(true)
     try {
       const data = await api('/api/events/pending')
       setEvents(data)
       setMessage({ type: '', text: '' })
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Could not load pending events.' })
+    } finally {
+      setPendingLoading(false)
     }
   }
 
@@ -107,28 +106,6 @@ function ApprovalDashboard({ role }) {
     }
   }
 
-  const act = async (id, approve) => {
-    setWorking(true)
-    setMessage({ type: '', text: '' })
-    if (!approve && !remarks[id]?.trim()) {
-      setWorking(false)
-      setMessage({ type: 'error', text: 'Please add a remark before declining.' })
-      return
-    }
-    try {
-      await api(`/api/events/${id}/decision`, {
-        method: 'POST',
-        body: JSON.stringify({ approve, remark: remarks[id] || '' }),
-      })
-      setMessage({ type: 'success', text: approve ? 'Request approved.' : 'Request declined.' })
-      load()
-    } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Action failed. Please try again.' })
-    } finally {
-      setWorking(false)
-    }
-  }
-
   return (
     <div className="approval-layout">
       <TabNavigation tabs={tabs} active={activeTab} onChange={setActiveTab} />
@@ -137,79 +114,23 @@ function ApprovalDashboard({ role }) {
           <div className="panel card-surface">
             <div className="panel-header">
               <h2>{role.replace('_', ' ')} queue</h2>
-              <button className="ghost refresh-button" onClick={load} disabled={working}>
-                {working ? 'Refreshing...' : 'Refresh'}
+              <button className="ghost refresh-button" onClick={load} disabled={pendingLoading}>
+                {pendingLoading ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>
             <Banner status={message} />
             <Banner status={downloadMessage} />
-            {events.map((ev) => (
-              <div key={ev.id} className="queue-card">
-                <div className="card-header">
-                  <div>
-                    <p className="muted">Request #{ev.id}</p>
-                    <strong>{ev.title}</strong>
-                  </div>
-                  <span className="badge">Stage: {ev.stage}</span>
-                </div>
-                <p>{ev.description}</p>
-                <p className="muted">Student: {ev.studentName}</p>
-                {ev.subEvents?.length > 0 && (
-                  <div className="poc-summary">
-                    <p className="muted">Sub-events / POCs</p>
-                    <div className="poc-summary-list">
-                      {ev.subEvents.map((sub) => (
-                        <div key={sub.id} className="poc-summary-row">
-                          <div>
-                            <strong>{sub.name}</strong>
-                            <p className="muted">POC: {sub.pocName} ({sub.pocUsername})</p>
-                            <p className="muted">Club: {sub.clubName}</p>
-                            <p className="muted">Budget head: {sub.budgetHead}</p>
-                            <p className="muted">Total budget: {formatAmount(sub.budgetTotal ?? calcTotal(sub.budgetItems))}</p>
-                            {sub.budgetItems?.length > 0 && (
-                              <div className="budget-table">
-                                <div className="budget-table__header">
-                                  <span>Description</span>
-                                  <span>Amount</span>
-                                </div>
-                                {sub.budgetItems.map((item, idx) => (
-                                  <div key={idx} className="budget-table__row">
-                                    <span>{item.description}</span>
-                                    <span>{Number(item.amount || 0).toFixed(2)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <span className={`poc-status ${sub.status.toLowerCase()}`}>{sub.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <textarea
-                  placeholder="Add a remark (required when declining)"
-                  value={remarks[ev.id] || ''}
-                  onChange={(e) => setRemarks({ ...remarks, [ev.id]: e.target.value })}
+            {pendingLoading && <p className="muted">Loading your queue...</p>}
+            {!pendingLoading &&
+              events.map((ev) => (
+                <EventCard
+                  key={ev.id}
+                  event={ev}
+                  onDownload={() => downloadBudget(ev.id)}
+                  downloading={downloadWorkingId === ev.id}
                 />
-                <div className="actions queue-actions">
-                  <button disabled={working} onClick={() => act(ev.id, true)}>
-                    {working ? 'Working...' : 'Approve'}
-                  </button>
-                  <button className="danger" disabled={working} onClick={() => act(ev.id, false)}>
-                    Decline
-                  </button>
-                  <button
-                    className="ghost"
-                    disabled={downloadWorkingId === ev.id}
-                    onClick={() => downloadBudget(ev.id)}
-                  >
-                    {downloadWorkingId === ev.id ? 'Preparing PDF...' : 'Download PDF'}
-                  </button>
-                </div>
-              </div>
-            ))}
-            {events.length === 0 && <p className="muted">No pending requests for you right now.</p>}
+              ))}
+            {!pendingLoading && events.length === 0 && <p className="muted">No pending requests for you right now.</p>}
           </div>
         )}
 
