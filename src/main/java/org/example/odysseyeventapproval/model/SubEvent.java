@@ -1,6 +1,7 @@
 package org.example.odysseyeventapproval.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "sub_events")
@@ -16,8 +17,8 @@ public class SubEvent {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private String budgetHead;
+    @Column(nullable = false, precision = 14, scale = 2)
+    private BigDecimal budgetHead;
 
     @Column(nullable = false, length = 2000)
     private String budgetBreakdown;
@@ -25,6 +26,10 @@ public class SubEvent {
     @ManyToOne(optional = false)
     @JoinColumn(name = "poc_id")
     private User poc;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "club_id")
+    private Club club;
 
     @Column(nullable = false)
     private String pocName;
@@ -56,11 +61,11 @@ public class SubEvent {
         this.name = name;
     }
 
-    public String getBudgetHead() {
+    public BigDecimal getBudgetHead() {
         return budgetHead;
     }
 
-    public void setBudgetHead(String budgetHead) {
+    public void setBudgetHead(BigDecimal budgetHead) {
         this.budgetHead = budgetHead;
     }
 
@@ -78,6 +83,14 @@ public class SubEvent {
 
     public void setPoc(User poc) {
         this.poc = poc;
+    }
+
+    public Club getClub() {
+        return club;
+    }
+
+    public void setClub(Club club) {
+        this.club = club;
     }
 
     public String getPocName() {

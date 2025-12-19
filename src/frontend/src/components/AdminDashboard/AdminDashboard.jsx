@@ -9,6 +9,7 @@ import './AdminDashboard.scss'
 const tabs = [
   { label: 'Override events', value: 'override', variant: 'primary' },
   { label: 'User management', value: 'users' },
+  { label: 'Clubs', value: 'clubs' },
   { label: 'Change password', value: 'password' },
 ]
 
@@ -28,6 +29,11 @@ function AdminDashboard() {
   const [eventsLoading, setEventsLoading] = useState(false)
   const [eventSearch, setEventSearch] = useState('')
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [clubs, setClubs] = useState([])
+  const [clubForm, setClubForm] = useState({ name: '' })
+  const [clubMessage, setClubMessage] = useState({ type: '', text: '' })
+  const [clubEdits, setClubEdits] = useState({})
+  const [clubsLoading, setClubsLoading] = useState(false)
 
   const loadUsers = async () => {
     try {
@@ -59,6 +65,7 @@ function AdminDashboard() {
   useEffect(() => {
     loadUsers()
     loadEvents()
+    loadClubs()
   }, [])
 
   const submit = async (e) => {
@@ -108,6 +115,55 @@ function AdminDashboard() {
       `${ev.id}`.includes(term) || ev.title.toLowerCase().includes(term) || ev.studentName.toLowerCase().includes(term)
     )
   }, [events, eventSearch])
+
+  const loadClubs = async () => {
+    setClubsLoading(true)
+    try {
+      const data = await api('/api/clubs')
+      setClubs(data)
+      setClubEdits(data.reduce((acc, club) => ({ ...acc, [club.id]: club.name }), {}))
+      setClubMessage({ type: '', text: '' })
+    } catch (err) {
+      setClubMessage({ type: 'error', text: err.message || 'Could not load clubs.' })
+    } finally {
+      setClubsLoading(false)
+    }
+  }
+
+  const submitClub = async (e) => {
+    e.preventDefault()
+    setClubMessage({ type: '', text: '' })
+    try {
+      await api('/api/admin/clubs', { method: 'POST', body: JSON.stringify(clubForm) })
+      setClubForm({ name: '' })
+      setClubMessage({ type: 'success', text: 'Club added.' })
+      loadClubs()
+    } catch (err) {
+      setClubMessage({ type: 'error', text: err.message || 'Could not add club.' })
+    }
+  }
+
+  const saveClub = async (id) => {
+    setClubMessage({ type: '', text: '' })
+    try {
+      await api(`/api/admin/clubs/${id}`, { method: 'PUT', body: JSON.stringify({ name: clubEdits[id] }) })
+      setClubMessage({ type: 'success', text: 'Club updated.' })
+      loadClubs()
+    } catch (err) {
+      setClubMessage({ type: 'error', text: err.message || 'Update failed.' })
+    }
+  }
+
+  const deleteClub = async (id) => {
+    setClubMessage({ type: '', text: '' })
+    try {
+      await api(`/api/admin/clubs/${id}`, { method: 'DELETE' })
+      setClubMessage({ type: 'success', text: 'Club deleted.' })
+      loadClubs()
+    } catch (err) {
+      setClubMessage({ type: 'error', text: err.message || 'Delete failed.' })
+    }
+  }
 
   return (
     <div className="admin-layout">
@@ -261,6 +317,76 @@ function AdminDashboard() {
                   </form>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'clubs' && (
+          <div className="panel card-surface">
+            <div className="panel-header">
+              <h2>Clubs</h2>
+              <button className="ghost compact refresh-button" onClick={loadClubs} disabled={clubsLoading}>
+                {clubsLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+            <div className="grid">
+              <form className="stack" onSubmit={submitClub}>
+                <h3>Add club</h3>
+                <label>
+                  Name
+                  <input value={clubForm.name} onChange={(e) => setClubForm({ name: e.target.value })} required />
+                </label>
+                <button type="submit" disabled={clubsLoading}>Add club</button>
+                <Banner status={clubMessage} />
+              </form>
+
+              <div className="stack">
+                <h3>Existing clubs</h3>
+                <div className="table-wrapper">
+                  <table className="user-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clubs.map((club) => (
+                        <tr key={club.id}>
+                          <td>{club.id}</td>
+                          <td>
+                            <input
+                              value={clubEdits[club.id] || ''}
+                              onChange={(e) => setClubEdits({ ...clubEdits, [club.id]: e.target.value })}
+                            />
+                          </td>
+                          <td className="actions">
+                            <button type="button" className="compact" onClick={() => saveClub(club.id)} disabled={clubsLoading}>
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="danger compact"
+                              onClick={() => deleteClub(club.id)}
+                              disabled={clubsLoading}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {clubs.length === 0 && (
+                        <tr>
+                          <td colSpan="3" className="muted">
+                            No clubs yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         )}
