@@ -1,0 +1,94 @@
+package org.example.odysseyeventapproval.service;
+
+import org.example.odysseyeventapproval.model.DecisionStatus;
+import org.example.odysseyeventapproval.model.Event;
+import org.example.odysseyeventapproval.model.SubEvent;
+import org.example.odysseyeventapproval.model.UserRole;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+import java.util.stream.Collectors;
+
+@Service
+public class EmailNotificationService {
+    private static final String TARGET_EMAIL = "suryansh22519@iiitd.ac.in";
+    private static final String FROM_EMAIL = "noreply@odyssey-events.local";
+
+    private final JavaMailSender mailSender;
+
+    public EmailNotificationService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
+
+    public void notifyStudentOnDecision(Event event, UserRole approverRole, DecisionStatus decisionStatus, String remark) {
+        String subject = "Event " + decisionStatus.name().toLowerCase() + " by " + formatRole(approverRole);
+        StringBuilder body = new StringBuilder();
+        body.append("An update was made to your event.\n\n")
+                .append("Event: ").append(event.getTitle()).append("\n")
+                .append("Stage: ").append(event.getStage()).append("\n")
+                .append("Decision by ").append(formatRole(approverRole)).append(": ").append(decisionStatus).append("\n");
+        if (remark != null && !remark.isBlank()) {
+            body.append("Remark: ").append(remark).append("\n");
+        }
+        body.append("\nDescription:\n").append(event.getDescription()).append("\n")
+                .append("\nSub-events:\n").append(formatSubEvents(event));
+
+        sendEmail(subject, body.toString());
+    }
+
+    public void notifyApproverForStage(Event event, UserRole role) {
+        String subject = "Event awaiting " + formatRole(role) + " approval";
+        StringBuilder body = new StringBuilder();
+        body.append("An event requires your approval.\n\n")
+                .append("Event: ").append(event.getTitle()).append("\n")
+                .append("Created by: ").append(event.getStudent().getDisplayName()).append("\n")
+                .append("Stage: ").append(event.getStage()).append("\n")
+                .append("\nDescription:\n").append(event.getDescription()).append("\n")
+                .append("\nSub-events:\n").append(formatSubEvents(event));
+
+        sendEmail(subject, body.toString());
+    }
+
+    public void notifyStudentOnPocDecision(Event event, SubEvent subEvent, boolean accepted) {
+        String subject = "POC response received for " + event.getTitle();
+        StringBuilder body = new StringBuilder();
+        body.append("A POC has responded to your event.\n\n")
+                .append("Event: ").append(event.getTitle()).append("\n")
+                .append("Sub-event: ").append(subEvent.getName()).append("\n")
+                .append("POC: ").append(subEvent.getPocName()).append("\n")
+                .append("Decision: ").append(accepted ? "ACCEPTED" : "DECLINED").append("\n")
+                .append("Stage: ").append(event.getStage()).append("\n")
+                .append("\nDescription:\n").append(event.getDescription()).append("\n");
+
+        sendEmail(subject, body.toString());
+    }
+
+    private String formatSubEvents(Event event) {
+        return event.getSubEvents().stream()
+                .map(this::formatSubEvent)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String formatSubEvent(SubEvent subEvent) {
+        return "- " + subEvent.getName()
+                + " (Club: " + subEvent.getClub().getName()
+                + ", POC: " + subEvent.getPocName()
+                + ", Budget: " + subEvent.getBudgetTotal()
+                + ", Status: " + subEvent.getPocStatus()
+                + ")";
+    }
+
+    private String formatRole(UserRole role) {
+        return role == null ? "Approver" : role.name().replace('_', ' ');
+    }
+
+    private void sendEmail(String subject, String text) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(FROM_EMAIL);
+        message.setTo(TARGET_EMAIL);
+        message.setSubject(subject);
+        message.setText(text);
+        mailSender.send(message);
+    }
+}
