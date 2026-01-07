@@ -138,6 +138,7 @@ public class EventService {
         Event saved = eventRepository.save(event);
         emailNotificationService.notifyStudentOnDecision(
                 saved,
+                saved.getStudent(),
                 approver.getRole(),
                 request.isApprove() ? DecisionStatus.APPROVED : DecisionStatus.REJECTED,
                 request.getRemark()
@@ -186,7 +187,7 @@ public class EventService {
 
         event.touchUpdatedAt();
         Event saved = eventRepository.save(event);
-        emailNotificationService.notifyStudentOnPocDecision(saved, subEvent, request.isAccept());
+        emailNotificationService.notifyStudentOnPocDecision(saved, saved.getStudent(), subEvent, request.isAccept());
         notifyNextApprover(saved);
         return subEvent;
     }
@@ -218,7 +219,7 @@ public class EventService {
         updateStageFromDecisions(event);
         event.touchUpdatedAt();
         Event saved = eventRepository.save(event);
-        emailNotificationService.notifyStudentOnDecision(saved, roleForTarget(target), status, remark);
+        emailNotificationService.notifyStudentOnDecision(saved, saved.getStudent(), roleForTarget(target), status, remark);
         notifyNextApprover(saved);
         return saved;
     }
@@ -348,11 +349,17 @@ public class EventService {
 
     private void notifyNextApprover(Event event) {
         if (event.getStage() == EventStage.SA_REVIEW) {
-            emailNotificationService.notifyApproverForStage(event, UserRole.SA_OFFICE);
+            notifyApproversByRole(event, UserRole.SA_OFFICE);
         } else if (event.getStage() == EventStage.FACULTY_REVIEW) {
-            emailNotificationService.notifyApproverForStage(event, UserRole.FACULTY_COORDINATOR);
+            notifyApproversByRole(event, UserRole.FACULTY_COORDINATOR);
         } else if (event.getStage() == EventStage.DEAN_REVIEW) {
-            emailNotificationService.notifyApproverForStage(event, UserRole.DEAN);
+            notifyApproversByRole(event, UserRole.DEAN);
+        }
+    }
+
+    private void notifyApproversByRole(Event event, UserRole role) {
+        for (User approver : userRepository.findByRole(role)) {
+            emailNotificationService.notifyApproverForStage(event, approver);
         }
     }
 

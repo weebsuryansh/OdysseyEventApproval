@@ -3,6 +3,7 @@ package org.example.odysseyeventapproval.service;
 import org.example.odysseyeventapproval.model.DecisionStatus;
 import org.example.odysseyeventapproval.model.Event;
 import org.example.odysseyeventapproval.model.SubEvent;
+import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.model.UserRole;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -12,7 +13,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class EmailNotificationService {
-    private static final String TARGET_EMAIL = "suryansh22519@iiitd.ac.in";
+    private static final String TEST_TARGET_EMAIL = "suryansh22519@iiitd.ac.in";
     private static final String FROM_EMAIL = "noreply@odyssey-events.local";
 
     private final JavaMailSender mailSender;
@@ -21,7 +22,7 @@ public class EmailNotificationService {
         this.mailSender = mailSender;
     }
 
-    public void notifyStudentOnDecision(Event event, UserRole approverRole, DecisionStatus decisionStatus, String remark) {
+    public void notifyStudentOnDecision(Event event, User student, UserRole approverRole, DecisionStatus decisionStatus, String remark) {
         String subject = "Event " + decisionStatus.name().toLowerCase() + " by " + formatRole(approverRole);
         StringBuilder body = new StringBuilder();
         body.append("An update was made to your event.\n\n")
@@ -34,11 +35,11 @@ public class EmailNotificationService {
         body.append("\nDescription:\n").append(event.getDescription()).append("\n")
                 .append("\nSub-events:\n").append(formatSubEvents(event));
 
-        sendEmail(subject, body.toString());
+        sendEmail(student.getEmail(), subject, body.toString());
     }
 
-    public void notifyApproverForStage(Event event, UserRole role) {
-        String subject = "Event awaiting " + formatRole(role) + " approval";
+    public void notifyApproverForStage(Event event, User approver) {
+        String subject = "Event awaiting " + formatRole(approver.getRole()) + " approval";
         StringBuilder body = new StringBuilder();
         body.append("An event requires your approval.\n\n")
                 .append("Event: ").append(event.getTitle()).append("\n")
@@ -47,10 +48,10 @@ public class EmailNotificationService {
                 .append("\nDescription:\n").append(event.getDescription()).append("\n")
                 .append("\nSub-events:\n").append(formatSubEvents(event));
 
-        sendEmail(subject, body.toString());
+        sendEmail(approver.getEmail(), subject, body.toString());
     }
 
-    public void notifyStudentOnPocDecision(Event event, SubEvent subEvent, boolean accepted) {
+    public void notifyStudentOnPocDecision(Event event, User student, SubEvent subEvent, boolean accepted) {
         String subject = "POC response received for " + event.getTitle();
         StringBuilder body = new StringBuilder();
         body.append("A POC has responded to your event.\n\n")
@@ -61,7 +62,7 @@ public class EmailNotificationService {
                 .append("Stage: ").append(event.getStage()).append("\n")
                 .append("\nDescription:\n").append(event.getDescription()).append("\n");
 
-        sendEmail(subject, body.toString());
+        sendEmail(student.getEmail(), subject, body.toString());
     }
 
     private String formatSubEvents(Event event) {
@@ -83,12 +84,19 @@ public class EmailNotificationService {
         return role == null ? "Approver" : role.name().replace('_', ' ');
     }
 
-    private void sendEmail(String subject, String text) {
+    private void sendEmail(String intendedRecipient, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(FROM_EMAIL);
-        message.setTo(TARGET_EMAIL);
+        message.setTo(TEST_TARGET_EMAIL);
         message.setSubject(subject);
-        message.setText(text);
+        message.setText(withIntendedRecipient(intendedRecipient, text));
         mailSender.send(message);
+    }
+
+    private String withIntendedRecipient(String intendedRecipient, String text) {
+        if (intendedRecipient == null || intendedRecipient.isBlank()) {
+            return text + "\n\nIntended recipient: (missing email on user)";
+        }
+        return text + "\n\nIntended recipient: " + intendedRecipient;
     }
 }
