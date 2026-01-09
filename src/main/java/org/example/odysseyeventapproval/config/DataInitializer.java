@@ -36,6 +36,7 @@ public class DataInitializer {
         UserCreateRequest request = new UserCreateRequest();
         request.setUsername(username);
         request.setDisplayName(display);
+        request.setEmail(defaultEmail(username));
         request.setPassword(password);
         request.setRole(role);
         return request;
@@ -43,6 +44,10 @@ public class DataInitializer {
 
     private String defaultPassword(String username) {
         return username + "123";
+    }
+
+    private String defaultEmail(String username) {
+        return username + "@iiitd.ac.in";
     }
 
     private void ensureDefaultClubs(ClubService clubService) {
