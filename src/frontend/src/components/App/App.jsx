@@ -39,6 +39,7 @@ function App() {
 
   const logout = async () => {
     await api('/api/auth/logout', { method: 'POST' })
+    clearDetailEvent()
     setUser(null)
   }
 
@@ -119,7 +120,12 @@ function App() {
                     <span className="brand-tagline">Campus Events Gateway</span>
                   </div>
                 </div>
-                <LoginPane onLogin={(u) => setUser(u)} />
+                <LoginPane
+                  onLogin={(u) => {
+                    clearDetailEvent()
+                    setUser(u)
+                  }}
+                />
               </div>
               <div className={"skyline-graphic-frame"}><img src={skyline} alt="Campus skyline" className="skyline-graphic"/></div>
 
