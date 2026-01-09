@@ -25,6 +25,10 @@ public class SubEvent {
     @Column(nullable = false, length = 2000)
     private String budgetBreakdown;
 
+    @Lob
+    @Column(nullable = false)
+    private String budgetPhotos = "[]";
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "poc_id")
     private User poc;
@@ -85,6 +89,14 @@ public class SubEvent {
 
     public void setBudgetBreakdown(String budgetBreakdown) {
         this.budgetBreakdown = budgetBreakdown;
+    }
+
+    public String getBudgetPhotos() {
+        return budgetPhotos;
+    }
+
+    public void setBudgetPhotos(String budgetPhotos) {
+        this.budgetPhotos = budgetPhotos;
     }
 
     public User getPoc() {
