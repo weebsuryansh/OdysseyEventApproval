@@ -21,17 +21,20 @@ public class EventService {
     private final SubEventRepository subEventRepository;
     private final ClubRepository clubRepository;
     private final UserRepository userRepository;
+    private final EmailNotificationService emailNotificationService;
 
     public EventService(
             EventRepository eventRepository,
             SubEventRepository subEventRepository,
             ClubRepository clubRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            EmailNotificationService emailNotificationService
     ) {
         this.eventRepository = eventRepository;
         this.subEventRepository = subEventRepository;
         this.clubRepository = clubRepository;
         this.userRepository = userRepository;
+        this.emailNotificationService = emailNotificationService;
     }
 
     public Event createEvent(User student, EventRequest request) {
@@ -132,7 +135,16 @@ public class EventService {
         } else {
             throw new IllegalStateException("User cannot decide on this stage");
         }
-        return eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        emailNotificationService.notifyStudentOnDecision(
+                saved,
+                saved.getStudent(),
+                approver.getRole(),
+                request.isApprove() ? DecisionStatus.APPROVED : DecisionStatus.REJECTED,
+                request.getRemark()
+        );
+        notifyNextApprover(saved);
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -174,7 +186,9 @@ public class EventService {
         }
 
         event.touchUpdatedAt();
-        eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        emailNotificationService.notifyStudentOnPocDecision(saved, saved.getStudent(), subEvent, request.isAccept());
+        notifyNextApprover(saved);
         return subEvent;
     }
 
@@ -204,7 +218,10 @@ public class EventService {
 
         updateStageFromDecisions(event);
         event.touchUpdatedAt();
-        return eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        emailNotificationService.notifyStudentOnDecision(saved, saved.getStudent(), roleForTarget(target), status, remark);
+        notifyNextApprover(saved);
+        return saved;
     }
 
     private void applyDecision(Event event, DecisionRequest request, StageTarget target) {
@@ -328,6 +345,30 @@ public class EventService {
         subEvent.setBudgetHead(budgetHead.trim());
         subEvent.setBudgetTotal(total);
         subEvent.setBudgetBreakdown(BudgetItemDto.toJson(budgetItems));
+    }
+
+    private void notifyNextApprover(Event event) {
+        if (event.getStage() == EventStage.SA_REVIEW) {
+            notifyApproversByRole(event, UserRole.SA_OFFICE);
+        } else if (event.getStage() == EventStage.FACULTY_REVIEW) {
+            notifyApproversByRole(event, UserRole.FACULTY_COORDINATOR);
+        } else if (event.getStage() == EventStage.DEAN_REVIEW) {
+            notifyApproversByRole(event, UserRole.DEAN);
+        }
+    }
+
+    private void notifyApproversByRole(Event event, UserRole role) {
+        for (User approver : userRepository.findByRole(role)) {
+            emailNotificationService.notifyApproverForStage(event, approver);
+        }
+    }
+
+    private UserRole roleForTarget(StageTarget target) {
+        return switch (target) {
+            case SA -> UserRole.SA_OFFICE;
+            case FACULTY -> UserRole.FACULTY_COORDINATOR;
+            case DEAN -> UserRole.DEAN;
+        };
     }
 
     private BigDecimal normalizeAmount(BigDecimal value) {

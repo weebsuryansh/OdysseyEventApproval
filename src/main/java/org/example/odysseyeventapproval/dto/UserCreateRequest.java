@@ -5,6 +5,7 @@ import org.example.odysseyeventapproval.model.UserRole;
 public class UserCreateRequest {
     private String username;
     private String displayName;
+    private String email;
     private String password;
     private UserRole role;
 
@@ -22,6 +23,14 @@ public class UserCreateRequest {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {

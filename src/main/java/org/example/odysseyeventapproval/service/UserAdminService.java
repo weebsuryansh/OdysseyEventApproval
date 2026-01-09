@@ -26,6 +26,7 @@ public class UserAdminService {
         User user = new User();
         user.setUsername(request.getUsername());
         user.setDisplayName(request.getDisplayName());
+        user.setEmail(resolveEmail(request));
         user.setRole(request.getRole());
         User saved = userRepository.save(user);
         PasswordCredential credential = new PasswordCredential();
@@ -33,6 +34,16 @@ public class UserAdminService {
         credential.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         passwordRepository.save(credential);
         return saved;
+    }
+
+    private String resolveEmail(UserCreateRequest request) {
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            return request.getEmail().trim();
+        }
+        if (request.getUsername() != null && !request.getUsername().isBlank()) {
+            return request.getUsername().trim();
+        }
+        return null;
     }
 
     @Transactional
