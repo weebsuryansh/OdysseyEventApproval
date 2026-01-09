@@ -5,6 +5,9 @@ import org.example.odysseyeventapproval.model.Event;
 import org.example.odysseyeventapproval.model.SubEvent;
 import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.model.UserRole;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -15,6 +18,7 @@ import java.util.stream.Collectors;
 public class EmailNotificationService {
     private static final String TEST_TARGET_EMAIL = "suryansh22519@iiitd.ac.in";
     private static final String FROM_EMAIL = "noreply@odyssey-events.local";
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotificationService.class);
 
     private final JavaMailSender mailSender;
 
@@ -90,7 +94,11 @@ public class EmailNotificationService {
         message.setTo(TEST_TARGET_EMAIL);
         message.setSubject(subject);
         message.setText(withIntendedRecipient(intendedRecipient, text));
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+        } catch (MailException ex) {
+            LOGGER.warn("Email delivery failed to {} (intended recipient {}).", TEST_TARGET_EMAIL, intendedRecipient, ex);
+        }
     }
 
     private String withIntendedRecipient(String intendedRecipient, String text) {
