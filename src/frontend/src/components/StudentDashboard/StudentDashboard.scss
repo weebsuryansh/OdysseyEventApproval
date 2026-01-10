@@ -108,6 +108,15 @@
   display: none;
 }
 
+.upload-button {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.upload-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(12, 140, 151, 0.2);
+}
+
 @media (max-width: 720px) {
   .budget-row {
     grid-template-columns: 1fr;

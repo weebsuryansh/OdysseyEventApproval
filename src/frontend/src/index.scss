@@ -72,6 +72,44 @@ label {
   display: block;
 }
 
+.poc-suggestion-wrap {
+  position: relative;
+}
+
+.poc-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  padding: 6px;
+  display: grid;
+  gap: 4px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.poc-suggestions button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.poc-suggestions button:hover {
+  background: var(--surface-muted);
+}
+
 input,
 textarea,
 select,

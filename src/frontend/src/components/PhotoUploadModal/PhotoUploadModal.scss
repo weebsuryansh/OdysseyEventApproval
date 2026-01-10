@@ -1,0 +1,54 @@
+.photo-upload-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-upload-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.photo-upload-modal__content {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 90vw);
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--card-shadow);
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.photo-upload-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.photo-upload-modal__dropzone {
+  border: 2px dashed var(--border-subtle);
+  border-radius: 16px;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  background: var(--surface-muted);
+  text-align: center;
+}
+
+.photo-upload-modal__dropzone.dragging {
+  border-color: var(--brand);
+  background: rgba(88, 132, 255, 0.08);
+}
+
+.photo-upload-modal__dropzone input {
+  display: none;
+}

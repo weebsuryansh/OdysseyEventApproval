@@ -118,6 +118,41 @@ public class EventService {
     }
 
     @Transactional
+    public Event addSubEvent(User student, Long eventId, SubEventRequest request) {
+        Event event = eventRepository.findById(eventId).orElseThrow();
+        if (!event.getStudent().getId().equals(student.getId())) {
+            throw new IllegalStateException("User cannot edit this event");
+        }
+        if (event.getSubEvents().size() >= 15) {
+            throw new IllegalArgumentException("A maximum of 15 sub-events is allowed");
+        }
+        SubEvent subEvent = buildSubEvent(event, student, request);
+        event.getSubEvents().add(subEvent);
+        event.touchUpdatedAt();
+        return eventRepository.save(event);
+    }
+
+    @Transactional
+    public Event removeSubEvent(User student, Long eventId, Long subEventId) {
+        Event event = eventRepository.findById(eventId).orElseThrow();
+        if (!event.getStudent().getId().equals(student.getId())) {
+            throw new IllegalStateException("User cannot edit this event");
+        }
+        if (event.getSubEvents().size() <= 1) {
+            throw new IllegalArgumentException("At least one sub-event is required");
+        }
+        boolean removed = event.getSubEvents().removeIf(sub -> sub.getId().equals(subEventId));
+        if (!removed) {
+            throw new IllegalArgumentException("Sub-event not found");
+        }
+        if (event.getStage() == EventStage.POC_REVIEW) {
+            updateStageAfterPocChange(event);
+        }
+        event.touchUpdatedAt();
+        return eventRepository.save(event);
+    }
+
+    @Transactional
     public Event decide(User approver, Long eventId, DecisionRequest request) {
         Event event = eventRepository.findById(eventId).orElseThrow();
         if (event.getStage() == EventStage.APPROVED || event.getStage() == EventStage.REJECTED) {
@@ -145,6 +180,30 @@ public class EventService {
         );
         notifyNextApprover(saved);
         return saved;
+    }
+
+    @Transactional
+    public SubEvent decideOnSubEvent(User approver, Long subEventId, DecisionRequest request) {
+        SubEvent subEvent = subEventRepository.findById(subEventId).orElseThrow();
+        Event event = subEvent.getEvent();
+        if (event.getStage() == EventStage.REJECTED) {
+            throw new IllegalStateException("User cannot decide on a sub-event for a rejected event");
+        }
+        if (!isStageForRole(approver.getRole(), event.getStage()) && event.getStage() != EventStage.APPROVED) {
+            throw new IllegalStateException("User cannot decide on this sub-event at this stage");
+        }
+        DecisionStatus decisionStatus = request.isApprove() ? DecisionStatus.APPROVED : DecisionStatus.REJECTED;
+
+        switch (approver.getRole()) {
+            case SA_OFFICE -> subEvent.setSaStatus(decisionStatus);
+            case FACULTY_COORDINATOR -> subEvent.setFacultyStatus(decisionStatus);
+            case DEAN -> subEvent.setDeanStatus(decisionStatus);
+            default -> throw new IllegalStateException("User cannot decide on this sub-event");
+        }
+
+        event.touchUpdatedAt();
+        eventRepository.save(event);
+        return subEvent;
     }
 
     @Transactional(readOnly = true)
@@ -271,29 +330,41 @@ public class EventService {
 
         List<SubEvent> results = new ArrayList<>();
         for (SubEventRequest request : subEventRequests) {
-            User poc = userRepository.findByUsername(request.getPocUsername())
-                    .orElseThrow(() -> new IllegalArgumentException("POC username not found: " + request.getPocUsername()));
-            if (poc.getRole() != UserRole.STUDENT) {
-                throw new IllegalArgumentException("POC must be a student user");
-            }
-            if (poc.getId().equals(student.getId())) {
-                throw new IllegalArgumentException("POC cannot be the event creator");
-            }
-
-            SubEvent subEvent = new SubEvent();
-            subEvent.setEvent(event);
-            subEvent.setName(request.getName());
-            subEvent.setClub(clubRepository.findById(request.getClubId())
-                    .orElseThrow(() -> new IllegalArgumentException("Club not found")));
-            applyBudgetDetails(subEvent, request.getBudgetHead(), request.getBudgetItems());
-            subEvent.setBudgetPhotos(BudgetPhotoDto.toJson(request.getBudgetPhotos()));
-            subEvent.setPoc(poc);
-            subEvent.setPocName(request.getPocName());
-            subEvent.setPocPhone(request.getPocPhone());
-            results.add(subEvent);
+            results.add(buildSubEvent(event, student, request));
         }
 
         return results;
+    }
+
+    private SubEvent buildSubEvent(Event event, User student, SubEventRequest request) {
+        User poc = userRepository.findByUsername(request.getPocUsername())
+                .orElseThrow(() -> new IllegalArgumentException("POC username not found: " + request.getPocUsername()));
+        if (poc.getRole() != UserRole.STUDENT) {
+            throw new IllegalArgumentException("POC must be a student user");
+        }
+        if (poc.getId().equals(student.getId())) {
+            throw new IllegalArgumentException("POC cannot be the event creator");
+        }
+
+        SubEvent subEvent = new SubEvent();
+        subEvent.setEvent(event);
+        subEvent.setName(request.getName());
+        subEvent.setClub(clubRepository.findById(request.getClubId())
+                .orElseThrow(() -> new IllegalArgumentException("Club not found")));
+        applyBudgetDetails(subEvent, request.getBudgetHead(), request.getBudgetItems());
+        subEvent.setBudgetPhotos(BudgetPhotoDto.toJson(request.getBudgetPhotos()));
+        subEvent.setPoc(poc);
+        subEvent.setPocName(request.getPocName());
+        subEvent.setPocPhone(request.getPocPhone());
+        return subEvent;
+    }
+
+    private void updateStageAfterPocChange(Event event) {
+        if (event.getSubEvents().stream().allMatch(se -> se.getPocStatus() == PocStatus.ACCEPTED)) {
+            event.setStage(EventStage.SA_REVIEW);
+        } else {
+            event.setStage(EventStage.POC_REVIEW);
+        }
     }
 
     private void updateStageFromDecisions(Event event) {
