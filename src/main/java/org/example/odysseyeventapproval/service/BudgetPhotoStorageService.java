@@ -105,7 +105,7 @@ public class BudgetPhotoStorageService {
                 return cipherInputStream.readAllBytes();
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException("Budget photo not found", e);
+            throw new IllegalArgumentException("Error in deciphering", e);
         } catch (GeneralSecurityException e) {
             return loadLegacyBytes(file);
         }
@@ -115,9 +115,7 @@ public class BudgetPhotoStorageService {
         try {
             return Files.readAllBytes(file);
         } catch (IOException e) {
-            throw new IllegalArgumentException("Budget photo not found", e);
-        } catch (GeneralSecurityException e) {
-            throw new IllegalArgumentException("Unable to decrypt budget photo", e);
+            throw new IllegalArgumentException("Budget photo not found (legacy)", e);
         }
     }
 
