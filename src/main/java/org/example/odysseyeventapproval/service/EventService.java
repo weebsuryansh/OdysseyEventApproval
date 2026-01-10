@@ -286,6 +286,7 @@ public class EventService {
             subEvent.setClub(clubRepository.findById(request.getClubId())
                     .orElseThrow(() -> new IllegalArgumentException("Club not found")));
             applyBudgetDetails(subEvent, request.getBudgetHead(), request.getBudgetItems());
+            subEvent.setBudgetPhotos(BudgetPhotoDto.toJson(request.getBudgetPhotos()));
             subEvent.setPoc(poc);
             subEvent.setPocName(request.getPocName());
             subEvent.setPocPhone(request.getPocPhone());

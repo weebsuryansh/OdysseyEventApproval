@@ -3,25 +3,27 @@ import Banner from '../Banner/Banner'
 import ChangePasswordCard from '../ChangePasswordCard/ChangePasswordCard'
 import EventCard from '../EventCard/EventCard'
 import TabNavigation from '../TabNavigation/TabNavigation'
-import { api, downloadFile } from '../../services/api'
+import { api, downloadFile, resolveApiUrl, uploadFiles } from '../../services/api'
 import './StudentDashboard.scss'
 
 const STAGES_COMPLETE = ['APPROVED', 'REJECTED']
 const EMPTY_BUDGET_ITEM = { description: '', amount: '' }
-const EMPTY_SUB_EVENT = {
+const createBudgetItem = () => ({ ...EMPTY_BUDGET_ITEM })
+const createSubEvent = () => ({
   name: '',
   clubId: '',
   budgetHead: '',
-  budgetItems: [{ ...EMPTY_BUDGET_ITEM }],
+  budgetItems: [createBudgetItem()],
+  budgetPhotos: [],
   pocUsername: '',
   pocName: '',
   pocPhone: '',
-}
+})
 
 function StudentDashboard({ onOpenEvent = () => {} }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [subEvents, setSubEvents] = useState([{ ...EMPTY_SUB_EVENT }])
+  const [subEvents, setSubEvents] = useState([createSubEvent()])
   const [events, setEvents] = useState([])
   const [pocRequests, setPocRequests] = useState([])
   const [pocEdits, setPocEdits] = useState({})
@@ -88,6 +90,7 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
           description: item.description,
           amount: Number(item.amount),
         })),
+        budgetPhotos: sub.budgetPhotos || [],
       }))
       await api('/api/events', {
         method: 'POST',
@@ -95,7 +98,7 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
       })
       setTitle('')
       setDescription('')
-      setSubEvents([{ ...EMPTY_SUB_EVENT }])
+      setSubEvents([createSubEvent()])
       setMessage({ type: 'success', text: 'Submitted for POC confirmation.' })
       load()
     } catch (err) {
@@ -121,13 +124,13 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
       setMessage({ type: 'error', text: 'You can add up to 15 sub-events.' })
       return
     }
-    setSubEvents([...subEvents, { ...EMPTY_SUB_EVENT }])
+    setSubEvents([...subEvents, createSubEvent()])
   }
 
   const addBudgetItem = (subIndex) => {
     const updated = [...subEvents]
     const items = [...(updated[subIndex].budgetItems || [])]
-    items.push({ ...EMPTY_BUDGET_ITEM })
+    items.push(createBudgetItem())
     updated[subIndex] = { ...updated[subIndex], budgetItems: items }
     setSubEvents(updated)
   }
@@ -151,6 +154,45 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
     items[itemIndex] = { ...items[itemIndex], [field]: value }
     updated[subIndex] = { ...updated[subIndex], budgetItems: items }
     setSubEvents(updated)
+  }
+
+  const addBudgetPhotos = async (subIndex, files) => {
+    const selected = Array.from(files || [])
+    if (!selected.length) return
+    try {
+      setMessage({ type: 'info', text: 'Uploading budget photos...' })
+      const uploads = await uploadFiles('/api/budget-photos', selected)
+      setSubEvents((prev) => {
+        const updated = [...prev]
+        const existing = updated[subIndex]?.budgetPhotos || []
+        const nextPhotos = uploads.map((url) => ({ url, description: '' }))
+        updated[subIndex] = { ...updated[subIndex], budgetPhotos: [...existing, ...nextPhotos] }
+        return updated
+      })
+      setMessage({ type: 'success', text: 'Budget photos uploaded.' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Could not load budget photos.' })
+    }
+  }
+
+  const updateBudgetPhotoDescription = (subIndex, photoIndex, value) => {
+    setSubEvents((prev) => {
+      const updated = [...prev]
+      const existing = updated[subIndex]?.budgetPhotos || []
+      const normalized = existing.map((photo) => (typeof photo === 'string' ? { url: photo, description: '' } : photo))
+      normalized[photoIndex] = { ...normalized[photoIndex], description: value }
+      updated[subIndex] = { ...updated[subIndex], budgetPhotos: normalized }
+      return updated
+    })
+  }
+
+  const removeBudgetPhoto = (subIndex, photoIndex) => {
+    setSubEvents((prev) => {
+      const updated = [...prev]
+      const existing = updated[subIndex]?.budgetPhotos || []
+      updated[subIndex] = { ...updated[subIndex], budgetPhotos: existing.filter((_, idx) => idx !== photoIndex) }
+      return updated
+    })
   }
 
   const removeBudgetItem = (subIndex, itemIndex) => {
@@ -541,6 +583,46 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                             </div>
                         ))}
                         <p className="muted total-row">Total: {calcTotal(sub.budgetItems || []).toFixed(2)}</p>
+                      </div>
+                      <div className="budget-photos">
+                        <div className="budget-photos__header">
+                          <strong>Budget photos</strong>
+                          <label className="ghost compact upload-button">
+                            + Upload photos
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={(e) => {
+                                addBudgetPhotos(index, e.target.files)
+                                e.target.value = ''
+                              }}
+                            />
+                          </label>
+                        </div>
+                        {sub.budgetPhotos?.length ? (
+                          <div className="budget-photos__grid">
+                            {sub.budgetPhotos.map((photo, photoIndex) => {
+                              const normalized = typeof photo === 'string' ? { url: photo, description: '' } : photo
+                              return (
+                              <div className="budget-photos__item" key={`${index}-${photoIndex}`}>
+                                <img src={resolveApiUrl(normalized.url)} alt={`Budget proof ${photoIndex + 1}`} />
+                                <input
+                                  type="text"
+                                  placeholder="Add a short description"
+                                  value={normalized.description || ''}
+                                  onChange={(e) => updateBudgetPhotoDescription(index, photoIndex, e.target.value)}
+                                />
+                                <button type="button" className="ghost compact" onClick={() => removeBudgetPhoto(index, photoIndex)}>
+                                  Remove
+                                </button>
+                              </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <p className="muted">Add photos of receipts or estimates for this sub-event.</p>
+                        )}
                       </div>
                       <div className="poc-grid">
                         <label>

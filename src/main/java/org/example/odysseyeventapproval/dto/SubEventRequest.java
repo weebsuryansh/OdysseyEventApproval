@@ -6,6 +6,7 @@ public class SubEventRequest {
     private String name;
     private String budgetHead;
     private List<BudgetItemDto> budgetItems;
+    private List<BudgetPhotoDto.BudgetPhotoItem> budgetPhotos;
     private Long clubId;
     private String pocUsername;
     private String pocName;
@@ -33,6 +34,14 @@ public class SubEventRequest {
 
     public void setBudgetItems(List<BudgetItemDto> budgetItems) {
         this.budgetItems = budgetItems;
+    }
+
+    public List<BudgetPhotoDto.BudgetPhotoItem> getBudgetPhotos() {
+        return budgetPhotos;
+    }
+
+    public void setBudgetPhotos(List<BudgetPhotoDto.BudgetPhotoItem> budgetPhotos) {
+        this.budgetPhotos = budgetPhotos;
     }
 
     public Long getClubId() {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Banner from '../Banner/Banner'
 import EventStatusPill from '../EventStatusPill/EventStatusPill'
-import { api, downloadFile } from '../../services/api'
+import { api, downloadFile, resolveApiUrl } from '../../services/api'
 import './EventDetail.scss'
 
 function EventDetail({ eventId, user, onBack, readOnly = false }) {
@@ -168,6 +168,22 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                             <span>₹{Number(item.amount || 0).toFixed(2)}</span>
                           </div>
                         ))}
+                      </div>
+                    )}
+                    {sub.budgetPhotos?.length > 0 && (
+                      <div className="budget-photo-grid">
+                        <p className="muted">Budget photos</p>
+                        <div className="budget-photo-grid__items">
+                          {sub.budgetPhotos.map((photo, idx) => {
+                            const normalized = typeof photo === 'string' ? { url: photo, description: '' } : photo
+                            return (
+                              <div key={idx} className="budget-photo-grid__item">
+                                <img src={resolveApiUrl(normalized.url)} alt={`Budget photo ${idx + 1} for ${sub.name}`} />
+                                {normalized.description && <p className="muted">{normalized.description}</p>}
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

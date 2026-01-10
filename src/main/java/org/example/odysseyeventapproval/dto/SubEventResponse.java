@@ -10,6 +10,7 @@ public class SubEventResponse {
     private String budgetHead;
     private java.math.BigDecimal budgetTotal;
     private List<BudgetItemDto> budgetItems;
+    private List<BudgetPhotoDto.BudgetPhotoItem> budgetPhotos;
     private Long clubId;
     private String clubName;
     private String pocUsername;
@@ -24,6 +25,7 @@ public class SubEventResponse {
         response.budgetHead = subEvent.getBudgetHead();
         response.budgetTotal = subEvent.getBudgetTotal();
         response.budgetItems = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
+        response.budgetPhotos = BudgetPhotoDto.parse(subEvent.getBudgetPhotos());
         response.clubId = subEvent.getClub().getId();
         response.clubName = subEvent.getClub().getName();
         response.pocUsername = subEvent.getPoc().getUsername();
@@ -51,6 +53,10 @@ public class SubEventResponse {
 
     public List<BudgetItemDto> getBudgetItems() {
         return budgetItems;
+    }
+
+    public List<BudgetPhotoDto.BudgetPhotoItem> getBudgetPhotos() {
+        return budgetPhotos;
     }
 
     public Long getClubId() {
