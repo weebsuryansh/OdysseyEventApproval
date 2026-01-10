@@ -92,14 +92,28 @@ public class BudgetPhotoStorageService {
         if (!Files.exists(file)) {
             throw new IllegalArgumentException("Budget photo not found");
         }
-        try (InputStream inputStream = Files.newInputStream(file)) {
-            byte[] iv = inputStream.readNBytes(IV_LENGTH);
-            if (iv.length != IV_LENGTH) {
-                throw new IllegalArgumentException("Budget photo not found");
+        try {
+            byte[] data = Files.readAllBytes(file);
+            if (data.length <= IV_LENGTH) {
+                return data;
             }
-            try (CipherInputStream cipherInputStream = new CipherInputStream(inputStream, initCipher(Cipher.DECRYPT_MODE, iv))) {
+            byte[] iv = new byte[IV_LENGTH];
+            System.arraycopy(data, 0, iv, 0, IV_LENGTH);
+            byte[] cipherText = new byte[data.length - IV_LENGTH];
+            System.arraycopy(data, IV_LENGTH, cipherText, 0, cipherText.length);
+            try (CipherInputStream cipherInputStream = new CipherInputStream(new java.io.ByteArrayInputStream(cipherText), initCipher(Cipher.DECRYPT_MODE, iv))) {
                 return cipherInputStream.readAllBytes();
             }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Budget photo not found", e);
+        } catch (GeneralSecurityException e) {
+            return loadLegacyBytes(file);
+        }
+    }
+
+    private byte[] loadLegacyBytes(Path file) {
+        try {
+            return Files.readAllBytes(file);
         } catch (IOException e) {
             throw new IllegalArgumentException("Budget photo not found", e);
         } catch (GeneralSecurityException e) {
