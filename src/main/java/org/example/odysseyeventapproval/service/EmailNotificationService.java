@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Service
 public class EmailNotificationService {
     private static final String TEST_TARGET_EMAIL = "suryansh22519@iiitd.ac.in";
-    private static final String FROM_EMAIL = "noreply@odyssey-events.local";
+    private static final String FROM_EMAIL = "suryansh22519@iiitd.ac.in";
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotificationService.class);
 
     private final JavaMailSender mailSender;

@@ -26,6 +26,7 @@ public class MailConfig {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost(host);
         mailSender.setPort(port);
+        LOGGER.info("Spring.mail.host Configured");
         return mailSender;
     }
 

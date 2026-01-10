@@ -337,6 +337,7 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
   }
 
   return (
+    <div>
     <div className="student-layout">
       <TabNavigation tabs={tabs} active={activeTab} onChange={setActiveTab} />
       <div className="tab-content">
@@ -709,8 +710,7 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
         {activeTab === 'password' && <ChangePasswordCard />}
       </div>
     </div>
-    <PhotoUploadModal
-      open={uploadModal.open}
+    <PhotoUploadModal open={uploadModal.open}
       title="Upload budget photos"
       description="Drag and drop supported images or browse your device."
       accept={CHROMIUM_IMAGE_ACCEPT}
@@ -721,6 +721,7 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
         setUploadModal({ open: false, subIndex: null })
       }}
     />
+    </div>
   )
 }
 
