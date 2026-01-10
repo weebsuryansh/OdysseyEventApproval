@@ -174,9 +174,15 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                       <div className="budget-photo-grid">
                         <p className="muted">Budget photos</p>
                         <div className="budget-photo-grid__items">
-                          {sub.budgetPhotos.map((photo, idx) => (
-                            <img key={idx} src={resolveApiUrl(photo)} alt={`Budget photo ${idx + 1} for ${sub.name}`} />
-                          ))}
+                          {sub.budgetPhotos.map((photo, idx) => {
+                            const normalized = typeof photo === 'string' ? { url: photo, description: '' } : photo
+                            return (
+                              <div key={idx} className="budget-photo-grid__item">
+                                <img src={resolveApiUrl(normalized.url)} alt={`Budget photo ${idx + 1} for ${sub.name}`} />
+                                {normalized.description && <p className="muted">{normalized.description}</p>}
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     )}

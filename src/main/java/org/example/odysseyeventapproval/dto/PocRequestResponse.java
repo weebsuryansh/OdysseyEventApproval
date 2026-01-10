@@ -13,7 +13,7 @@ public class PocRequestResponse {
     private String budgetHead;
     private java.math.BigDecimal budgetTotal;
     private List<BudgetItemDto> budgetItems;
-    private List<String> budgetPhotos;
+    private List<BudgetPhotoDto.BudgetPhotoItem> budgetPhotos;
     private String clubName;
     private String pocName;
     private String pocPhone;
@@ -71,7 +71,7 @@ public class PocRequestResponse {
         return budgetItems;
     }
 
-    public List<String> getBudgetPhotos() {
+    public List<BudgetPhotoDto.BudgetPhotoItem> getBudgetPhotos() {
         return budgetPhotos;
     }
 

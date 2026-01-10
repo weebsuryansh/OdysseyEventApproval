@@ -129,7 +129,13 @@
   gap: 8px;
 }
 
-.budget-photo-grid__items img {
+.budget-photo-grid__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.budget-photo-grid__item img {
   width: 100%;
   height: 110px;
   object-fit: cover;

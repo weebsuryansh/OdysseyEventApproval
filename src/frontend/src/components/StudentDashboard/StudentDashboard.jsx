@@ -165,13 +165,25 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
       setSubEvents((prev) => {
         const updated = [...prev]
         const existing = updated[subIndex]?.budgetPhotos || []
-        updated[subIndex] = { ...updated[subIndex], budgetPhotos: [...existing, ...uploads] }
+        const nextPhotos = uploads.map((url) => ({ url, description: '' }))
+        updated[subIndex] = { ...updated[subIndex], budgetPhotos: [...existing, ...nextPhotos] }
         return updated
       })
       setMessage({ type: 'success', text: 'Budget photos uploaded.' })
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Could not load budget photos.' })
     }
+  }
+
+  const updateBudgetPhotoDescription = (subIndex, photoIndex, value) => {
+    setSubEvents((prev) => {
+      const updated = [...prev]
+      const existing = updated[subIndex]?.budgetPhotos || []
+      const normalized = existing.map((photo) => (typeof photo === 'string' ? { url: photo, description: '' } : photo))
+      normalized[photoIndex] = { ...normalized[photoIndex], description: value }
+      updated[subIndex] = { ...updated[subIndex], budgetPhotos: normalized }
+      return updated
+    })
   }
 
   const removeBudgetPhoto = (subIndex, photoIndex) => {
@@ -590,14 +602,23 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                         </div>
                         {sub.budgetPhotos?.length ? (
                           <div className="budget-photos__grid">
-                            {sub.budgetPhotos.map((photo, photoIndex) => (
+                            {sub.budgetPhotos.map((photo, photoIndex) => {
+                              const normalized = typeof photo === 'string' ? { url: photo, description: '' } : photo
+                              return (
                               <div className="budget-photos__item" key={`${index}-${photoIndex}`}>
-                                <img src={resolveApiUrl(photo)} alt={`Budget proof ${photoIndex + 1}`} />
+                                <img src={resolveApiUrl(normalized.url)} alt={`Budget proof ${photoIndex + 1}`} />
+                                <input
+                                  type="text"
+                                  placeholder="Add a short description"
+                                  value={normalized.description || ''}
+                                  onChange={(e) => updateBudgetPhotoDescription(index, photoIndex, e.target.value)}
+                                />
                                 <button type="button" className="ghost compact" onClick={() => removeBudgetPhoto(index, photoIndex)}>
                                   Remove
                                 </button>
                               </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         ) : (
                           <p className="muted">Add photos of receipts or estimates for this sub-event.</p>
