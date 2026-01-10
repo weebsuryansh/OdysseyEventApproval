@@ -3,6 +3,7 @@ package org.example.odysseyeventapproval.controller;
 import org.example.odysseyeventapproval.dto.DecisionRequest;
 import org.example.odysseyeventapproval.dto.EventRequest;
 import org.example.odysseyeventapproval.dto.EventResponse;
+import org.example.odysseyeventapproval.dto.SubEventRequest;
 import org.example.odysseyeventapproval.model.Event;
 import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.service.BudgetReportService;
@@ -75,6 +76,22 @@ public class EventController {
     public EventResponse decide(@PathVariable Long id, @RequestBody DecisionRequest request) {
         User approver = currentUserService.requireCurrentUser();
         Event updated = eventService.decide(approver, id, request);
+        return EventResponse.from(updated);
+    }
+
+    @PostMapping("/{id}/sub-events")
+    @PreAuthorize("hasRole('STUDENT')")
+    public EventResponse addSubEvent(@PathVariable Long id, @RequestBody SubEventRequest request) {
+        User student = currentUserService.requireCurrentUser();
+        Event updated = eventService.addSubEvent(student, id, request);
+        return EventResponse.from(updated);
+    }
+
+    @DeleteMapping("/{id}/sub-events/{subEventId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public EventResponse removeSubEvent(@PathVariable Long id, @PathVariable Long subEventId) {
+        User student = currentUserService.requireCurrentUser();
+        Event updated = eventService.removeSubEvent(student, id, subEventId);
         return EventResponse.from(updated);
     }
 

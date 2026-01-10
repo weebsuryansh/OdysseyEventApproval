@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import Banner from '../Banner/Banner'
 import ChangePasswordCard from '../ChangePasswordCard/ChangePasswordCard'
 import EventCard from '../EventCard/EventCard'
+import PhotoUploadModal from '../PhotoUploadModal/PhotoUploadModal'
 import TabNavigation from '../TabNavigation/TabNavigation'
 import { api, downloadFile, resolveApiUrl, uploadFiles } from '../../services/api'
+import { CHROMIUM_IMAGE_ACCEPT, filterChromiumImages } from '../../utils/fileValidation'
 import './StudentDashboard.scss'
 
 const STAGES_COMPLETE = ['APPROVED', 'REJECTED']
@@ -36,6 +38,8 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
   const [activeTab, setActiveTab] = useState('home')
   const [pocWorkingId, setPocWorkingId] = useState(null)
   const [downloadWorkingId, setDownloadWorkingId] = useState(null)
+  const [uploadModal, setUploadModal] = useState({ open: false, subIndex: null })
+  const [pocSuggestions, setPocSuggestions] = useState({})
 
   const load = async () => {
     setLoading(true)
@@ -158,10 +162,18 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
 
   const addBudgetPhotos = async (subIndex, files) => {
     const selected = Array.from(files || [])
-    if (!selected.length) return
+    const { accepted, rejected } = filterChromiumImages(selected)
+    if (rejected.length) {
+      setMessage({
+        type: 'error',
+        text: 'Some files were skipped. Please use PNG, JPEG, WEBP, GIF, BMP, or SVG images.',
+      })
+    }
+    const approved = accepted
+    if (!approved.length) return
     try {
       setMessage({ type: 'info', text: 'Uploading budget photos...' })
-      const uploads = await uploadFiles('/api/budget-photos', selected)
+      const uploads = await uploadFiles('/api/budget-photos', approved)
       setSubEvents((prev) => {
         const updated = [...prev]
         const existing = updated[subIndex]?.budgetPhotos || []
@@ -207,6 +219,20 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
     const updated = [...subEvents]
     updated[index] = { ...updated[index], [field]: value }
     setSubEvents(updated)
+  }
+
+  const updatePocUsername = async (index, value) => {
+    updateSubEvent(index, 'pocUsername', value)
+    if (!value || value.trim().length < 2) {
+      setPocSuggestions((prev) => ({ ...prev, [index]: [] }))
+      return
+    }
+    try {
+      const results = await api(`/api/users/search?query=${encodeURIComponent(value.trim())}`)
+      setPocSuggestions((prev) => ({ ...prev, [index]: results }))
+    } catch (_) {
+      setPocSuggestions((prev) => ({ ...prev, [index]: [] }))
+    }
   }
 
   const removeSubEvent = (index) => {
@@ -587,18 +613,13 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                       <div className="budget-photos">
                         <div className="budget-photos__header">
                           <strong>Budget photos</strong>
-                          <label className="ghost compact upload-button">
+                          <button
+                            type="button"
+                            className="ghost compact upload-button"
+                            onClick={() => setUploadModal({ open: true, subIndex: index })}
+                          >
                             + Upload photos
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={(e) => {
-                                addBudgetPhotos(index, e.target.files)
-                                e.target.value = ''
-                              }}
-                            />
-                          </label>
+                          </button>
                         </div>
                         {sub.budgetPhotos?.length ? (
                           <div className="budget-photos__grid">
@@ -627,11 +648,37 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                       <div className="poc-grid">
                         <label>
                           POC username
-                          <input
+                          <div className="poc-suggestion-wrap">
+                            <input
                               value={sub.pocUsername}
-                              onChange={(e) => updateSubEvent(index, 'pocUsername', e.target.value)}
+                              onChange={(e) => updatePocUsername(index, e.target.value)}
+                              onBlur={() => {
+                                setTimeout(() => {
+                                  setPocSuggestions((prev) => ({ ...prev, [index]: [] }))
+                                }, 150)
+                              }}
                               required
-                          />
+                            />
+                            {pocSuggestions[index]?.length > 0 && (
+                              <ul className="poc-suggestions" role="listbox">
+                                {pocSuggestions[index].map((match) => (
+                                  <li key={match.username}>
+                                    <button
+                                      type="button"
+                                      onMouseDown={() => {
+                                        updateSubEvent(index, 'pocUsername', match.username)
+                                        updateSubEvent(index, 'pocName', match.displayName)
+                                        setPocSuggestions((prev) => ({ ...prev, [index]: [] }))
+                                      }}
+                                    >
+                                      <strong>{match.username}</strong>
+                                      <span className="muted">{match.displayName}</span>
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                         </label>
                         <label>
                           POC name
@@ -662,6 +709,18 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
         {activeTab === 'password' && <ChangePasswordCard />}
       </div>
     </div>
+    <PhotoUploadModal
+      open={uploadModal.open}
+      title="Upload budget photos"
+      description="Drag and drop supported images or browse your device."
+      accept={CHROMIUM_IMAGE_ACCEPT}
+      onClose={() => setUploadModal({ open: false, subIndex: null })}
+      onFilesSelected={(files) => {
+        if (uploadModal.subIndex === null) return
+        addBudgetPhotos(uploadModal.subIndex, files)
+        setUploadModal({ open: false, subIndex: null })
+      }}
+    />
   )
 }
 

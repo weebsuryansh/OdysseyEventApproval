@@ -47,6 +47,18 @@ public class SubEvent {
     @Column(nullable = false)
     private PocStatus pocStatus = PocStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DecisionStatus saStatus = DecisionStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DecisionStatus facultyStatus = DecisionStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DecisionStatus deanStatus = DecisionStatus.PENDING;
+
     public Long getId() {
         return id;
     }
@@ -137,5 +149,29 @@ public class SubEvent {
 
     public void setPocStatus(PocStatus pocStatus) {
         this.pocStatus = pocStatus;
+    }
+
+    public DecisionStatus getSaStatus() {
+        return saStatus;
+    }
+
+    public void setSaStatus(DecisionStatus saStatus) {
+        this.saStatus = saStatus;
+    }
+
+    public DecisionStatus getFacultyStatus() {
+        return facultyStatus;
+    }
+
+    public void setFacultyStatus(DecisionStatus facultyStatus) {
+        this.facultyStatus = facultyStatus;
+    }
+
+    public DecisionStatus getDeanStatus() {
+        return deanStatus;
+    }
+
+    public void setDeanStatus(DecisionStatus deanStatus) {
+        this.deanStatus = deanStatus;
     }
 }

@@ -17,6 +17,9 @@ public class SubEventResponse {
     private String pocName;
     private String pocPhone;
     private String status;
+    private String saStatus;
+    private String facultyStatus;
+    private String deanStatus;
 
     public static SubEventResponse from(SubEvent subEvent) {
         SubEventResponse response = new SubEventResponse();
@@ -32,6 +35,9 @@ public class SubEventResponse {
         response.pocName = subEvent.getPocName();
         response.pocPhone = subEvent.getPocPhone();
         response.status = subEvent.getPocStatus().name();
+        response.saStatus = subEvent.getSaStatus().name();
+        response.facultyStatus = subEvent.getFacultyStatus().name();
+        response.deanStatus = subEvent.getDeanStatus().name();
         return response;
     }
 
@@ -81,5 +87,17 @@ public class SubEventResponse {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getSaStatus() {
+        return saStatus;
+    }
+
+    public String getFacultyStatus() {
+        return facultyStatus;
+    }
+
+    public String getDeanStatus() {
+        return deanStatus;
     }
 }

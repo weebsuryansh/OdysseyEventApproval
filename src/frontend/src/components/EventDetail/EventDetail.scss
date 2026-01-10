@@ -87,6 +87,44 @@
   gap: 8px;
 }
 
+.subevent-approvals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.subevent-decision {
+  margin-top: 6px;
+  display: grid;
+  gap: 8px;
+}
+
+.subevent-decision .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.subevent-remove {
+  align-self: flex-start;
+}
+
+.subevent-edit {
+  padding: 18px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subevent-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .budget-summary {
   font-weight: 600;
 }
