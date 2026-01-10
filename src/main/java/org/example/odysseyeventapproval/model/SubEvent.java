@@ -32,10 +32,12 @@ public class SubEvent {
     @Column(nullable = false)
     private String budgetPhotos = "[]";
 
-    @Column(nullable = false, length = 8000)
+    @Lob
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String afterEventItemsJson = "[]";
 
-    @Column(nullable = false, length = 8000)
+    @Lob
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String afterEventImagesJson = "[]";
 
     @Column(length = 16)
