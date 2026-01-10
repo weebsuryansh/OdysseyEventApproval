@@ -116,6 +116,8 @@ public class BudgetPhotoStorageService {
             return Files.readAllBytes(file);
         } catch (IOException e) {
             throw new IllegalArgumentException("Budget photo not found", e);
+        } catch (GeneralSecurityException e) {
+            throw new IllegalArgumentException("Unable to decrypt budget photo", e);
         }
     }
 
