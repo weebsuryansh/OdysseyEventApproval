@@ -15,14 +15,17 @@ const tabs = [
 
 function AdminDashboard() {
   const [users, setUsers] = useState([])
-  const [form, setForm] = useState({ username: '', displayName: '', password: '', role: 'STUDENT' })
+  const [form, setForm] = useState({ username: '', displayName: '', email: '', password: '', role: 'STUDENT' })
   const [status, setStatus] = useState('APPROVED')
   const [targetStage, setTargetStage] = useState('DEAN')
   const [remark, setRemark] = useState('')
   const [loadMessage, setLoadMessage] = useState({ type: '', text: '' })
   const [createMessage, setCreateMessage] = useState({ type: '', text: '' })
+  const [userMessage, setUserMessage] = useState({ type: '', text: '' })
   const [overrideMessage, setOverrideMessage] = useState({ type: '', text: '' })
   const [activeTab, setActiveTab] = useState('override')
+  const [userSearch, setUserSearch] = useState('')
+  const [userEdits, setUserEdits] = useState({})
 
   const [events, setEvents] = useState([])
   const [eventsMessage, setEventsMessage] = useState({ type: '', text: '' })
@@ -41,6 +44,15 @@ function AdminDashboard() {
     try {
       const data = await api('/api/admin/users')
       setUsers(data)
+      setUserEdits(
+        data.reduce(
+          (acc, user) => ({
+            ...acc,
+            [user.id]: { username: user.username, displayName: user.displayName, email: user.email || '', role: user.role },
+          }),
+          {}
+        )
+      )
       setLoadMessage({ type: '', text: '' })
     } catch (err) {
       setLoadMessage({ type: 'error', text: err.message || 'Could not load users. Make sure you are signed in as an admin.' })
@@ -78,11 +90,25 @@ function AdminDashboard() {
         method: 'POST',
         body: JSON.stringify(form),
       })
-      setForm({ username: '', displayName: '', password: '', role: 'STUDENT' })
+      setForm({ username: '', displayName: '', email: '', password: '', role: 'STUDENT' })
       setCreateMessage({ type: 'success', text: 'User created successfully.' })
       loadUsers()
     } catch (err) {
       setCreateMessage({ type: 'error', text: err.message || 'Could not create user.' })
+    }
+  }
+
+  const saveUser = async (id) => {
+    setUserMessage({ type: '', text: '' })
+    try {
+      await api(`/api/admin/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(userEdits[id]),
+      })
+      setUserMessage({ type: 'success', text: 'User updated.' })
+      loadUsers()
+    } catch (err) {
+      setUserMessage({ type: 'error', text: err.message || 'Could not update user.' })
     }
   }
 
@@ -145,6 +171,21 @@ function AdminDashboard() {
       `${ev.id}`.includes(term) || ev.title.toLowerCase().includes(term) || ev.studentName.toLowerCase().includes(term)
     )
   }, [events, eventSearch])
+
+  const filteredUsers = useMemo(() => {
+    const term = userSearch.trim().toLowerCase()
+    if (!term) return users
+    return users.filter((user) => {
+      const email = user.email || ''
+      return (
+        user.username.toLowerCase().includes(term) ||
+        user.displayName.toLowerCase().includes(term) ||
+        email.toLowerCase().includes(term) ||
+        user.role.toLowerCase().includes(term) ||
+        `${user.id}`.includes(term)
+      )
+    })
+  }, [users, userSearch])
 
   const loadClubs = async () => {
     setClubsLoading(true)
@@ -216,6 +257,10 @@ function AdminDashboard() {
                   <input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required />
                 </label>
                 <label>
+                  Email
+                  <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email address" />
+                </label>
+                <label>
                   Password
                   <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
                 </label>
@@ -233,6 +278,13 @@ function AdminDashboard() {
               <div className="stack">
                 <h3>All users</h3>
                 <Banner status={loadMessage} />
+                <Banner status={userMessage} />
+                <input
+                  type="search"
+                  placeholder="Search by name, email, role, or ID"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                />
                 <div className="table-wrapper">
                   <table className="user-table">
                     <thead>
@@ -240,18 +292,63 @@ function AdminDashboard() {
                         <th>ID</th>
                         <th>Username</th>
                         <th>Name</th>
+                        <th>Email</th>
                         <th>Role</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map((u) => (
+                      {filteredUsers.map((u) => (
                         <tr key={u.id}>
                           <td>{u.id}</td>
-                          <td>{u.username}</td>
-                          <td>{u.displayName}</td>
-                          <td>{u.role}</td>
+                          <td>
+                            <input
+                              value={userEdits[u.id]?.username || ''}
+                              onChange={(e) =>
+                                setUserEdits({ ...userEdits, [u.id]: { ...userEdits[u.id], username: e.target.value } })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              value={userEdits[u.id]?.displayName || ''}
+                              onChange={(e) =>
+                                setUserEdits({ ...userEdits, [u.id]: { ...userEdits[u.id], displayName: e.target.value } })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              value={userEdits[u.id]?.email || ''}
+                              onChange={(e) =>
+                                setUserEdits({ ...userEdits, [u.id]: { ...userEdits[u.id], email: e.target.value } })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <select
+                              value={userEdits[u.id]?.role || 'STUDENT'}
+                              onChange={(e) => setUserEdits({ ...userEdits, [u.id]: { ...userEdits[u.id], role: e.target.value } })}
+                            >
+                              {['STUDENT', 'SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN', 'ADMIN', 'DEV'].map((role) => (
+                                <option key={role}>{role}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="actions">
+                            <button type="button" className="compact" onClick={() => saveUser(u.id)}>
+                              Save
+                            </button>
+                          </td>
                         </tr>
                       ))}
+                      {filteredUsers.length === 0 && (
+                        <tr>
+                          <td colSpan="6" className="muted">
+                            No users match your search.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

@@ -2,6 +2,7 @@ package org.example.odysseyeventapproval.controller;
 
 import org.example.odysseyeventapproval.dto.EventResponse;
 import org.example.odysseyeventapproval.dto.UserCreateRequest;
+import org.example.odysseyeventapproval.dto.UserUpdateRequest;
 import org.example.odysseyeventapproval.model.DecisionStatus;
 import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.model.UserRole;
@@ -37,6 +38,12 @@ public class AdminController {
     @PreAuthorize("hasAnyRole('ADMIN','DEV')")
     public void deleteUser(@PathVariable Long id) {
         userAdminService.deleteUser(id);
+    }
+
+    @PutMapping("/users/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','DEV')")
+    public User updateUser(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
+        return userAdminService.updateUser(id, request);
     }
 
     @PostMapping("/events/{id}/override")
