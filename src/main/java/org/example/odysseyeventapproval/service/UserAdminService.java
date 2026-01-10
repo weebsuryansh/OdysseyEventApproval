@@ -1,6 +1,7 @@
 package org.example.odysseyeventapproval.service;
 
 import org.example.odysseyeventapproval.dto.UserCreateRequest;
+import org.example.odysseyeventapproval.dto.UserUpdateRequest;
 import org.example.odysseyeventapproval.model.PasswordCredential;
 import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.repository.PasswordRepository;
@@ -24,8 +25,8 @@ public class UserAdminService {
     @Transactional
     public User createUser(UserCreateRequest request) {
         User user = new User();
-        user.setUsername(request.getUsername());
-        user.setDisplayName(request.getDisplayName());
+        user.setUsername(normalizeValue(request.getUsername()));
+        user.setDisplayName(normalizeValue(request.getDisplayName()));
         user.setEmail(resolveEmail(request));
         user.setRole(request.getRole());
         User saved = userRepository.save(user);
@@ -36,14 +37,40 @@ public class UserAdminService {
         return saved;
     }
 
+    @Transactional
+    public User updateUser(Long id, UserUpdateRequest request) {
+        User user = userRepository.findById(id).orElseThrow();
+        user.setUsername(normalizeValue(request.getUsername()));
+        user.setDisplayName(normalizeValue(request.getDisplayName()));
+        user.setEmail(normalizeNullable(request.getEmail()));
+        user.setRole(request.getRole());
+        return userRepository.save(user);
+    }
+
     private String resolveEmail(UserCreateRequest request) {
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
             return request.getEmail().trim();
         }
-        if (request.getUsername() != null && !request.getUsername().isBlank()) {
-            return request.getUsername().trim();
+        return normalizeNullable(request.getUsername());
+    }
+
+    private String normalizeValue(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Value is required");
         }
-        return null;
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("Value is required");
+        }
+        return trimmed;
+    }
+
+    private String normalizeNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Transactional
