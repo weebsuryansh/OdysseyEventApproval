@@ -95,16 +95,35 @@ public class EventController {
         return EventResponse.from(updated);
     }
 
-    @GetMapping(value = "/{id}/budget.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/{id}/pre-event.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     @PreAuthorize("hasAnyRole('STUDENT','SA_OFFICE','FACULTY_COORDINATOR','DEAN','ADMIN','DEV')")
-    public ResponseEntity<byte[]> downloadBudgetReport(@PathVariable Long id) {
+    public ResponseEntity<byte[]> downloadPreEventReport(@PathVariable Long id) {
         User approver = currentUserService.requireCurrentUser();
         Event event = eventService.requireEventForViewer(approver, id);
-        byte[] pdf = budgetReportService.generateEventBudgetReport(event);
+        byte[] pdf = budgetReportService.generatePreEventReport(event);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=event-" + id + "-budget.pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=event-" + id + "-pre-event.pdf")
                 .body(pdf);
+    }
+
+    @GetMapping(value = "/{id}/inflow-outflow.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyRole('STUDENT','SA_OFFICE','FACULTY_COORDINATOR','DEAN','ADMIN','DEV')")
+    public ResponseEntity<byte[]> downloadInflowOutflowReport(@PathVariable Long id) {
+        User approver = currentUserService.requireCurrentUser();
+        Event event = eventService.requireEventForViewer(approver, id);
+        byte[] pdf = budgetReportService.generateInflowOutflowReport(event);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=event-" + id + "-inflow-outflow.pdf")
+                .body(pdf);
+    }
+
+    @GetMapping(value = "/{id}/budget.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyRole('STUDENT','SA_OFFICE','FACULTY_COORDINATOR','DEAN','ADMIN','DEV')")
+    public ResponseEntity<byte[]> downloadLegacyBudgetReport(@PathVariable Long id) {
+        return downloadPreEventReport(id);
     }
 }

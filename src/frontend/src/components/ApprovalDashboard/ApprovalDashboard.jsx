@@ -22,7 +22,7 @@ function ApprovalDashboard({ role, onOpenEvent = () => {} }) {
 
   const tabs = [
     { label: 'Pending queue', value: 'pending', variant: 'primary' },
-    { label: 'History', value: 'history' },
+    { label: 'All events', value: 'history' },
   ]
 
   const load = async () => {
@@ -91,16 +91,31 @@ function ApprovalDashboard({ role, onOpenEvent = () => {} }) {
     return Array.from(seen.entries()).map(([id, name]) => ({ id, name }))
   }, [clubs, history])
 
-  const downloadBudget = async (eventId) => {
+  const downloadPreEvent = async (eventId) => {
     setDownloadWorkingId(eventId)
     const setBanner = activeTab === 'history' ? setHistoryMessage : setMessage
     setDownloadMessage({ type: '', text: '' })
     setBanner({ type: '', text: '' })
     try {
-      await downloadFile(`/api/events/${eventId}/budget.pdf`, `event-${eventId}-budget.pdf`)
-      setDownloadMessage({ type: 'success', text: 'Budget PDF downloaded.' })
+      await downloadFile(`/api/events/${eventId}/pre-event.pdf`, `event-${eventId}-pre-event.pdf`)
+      setDownloadMessage({ type: 'success', text: 'Pre-event document downloaded.' })
     } catch (err) {
-      setDownloadMessage({ type: 'error', text: err.message || 'Could not download budget PDF.' })
+      setDownloadMessage({ type: 'error', text: err.message || 'Could not download pre-event document.' })
+    } finally {
+      setDownloadWorkingId(null)
+    }
+  }
+
+  const downloadInflowOutflow = async (eventId) => {
+    setDownloadWorkingId(eventId)
+    const setBanner = activeTab === 'history' ? setHistoryMessage : setMessage
+    setDownloadMessage({ type: '', text: '' })
+    setBanner({ type: '', text: '' })
+    try {
+      await downloadFile(`/api/events/${eventId}/inflow-outflow.pdf`, `event-${eventId}-inflow-outflow.pdf`)
+      setDownloadMessage({ type: 'success', text: 'Inflow/outflow document downloaded.' })
+    } catch (err) {
+      setDownloadMessage({ type: 'error', text: err.message || 'Could not download inflow/outflow document.' })
     } finally {
       setDownloadWorkingId(null)
     }
@@ -126,7 +141,8 @@ function ApprovalDashboard({ role, onOpenEvent = () => {} }) {
                 <EventCard
                   key={ev.id}
                   event={ev}
-                  onDownload={() => downloadBudget(ev.id)}
+                  onDownloadPreEvent={downloadPreEvent}
+                  onDownloadInflowOutflow={downloadInflowOutflow}
                   downloading={downloadWorkingId === ev.id}
                   onOpen={(id) => onOpenEvent(id)}
                 />
@@ -138,7 +154,7 @@ function ApprovalDashboard({ role, onOpenEvent = () => {} }) {
         {activeTab === 'history' && (
           <div className="panel card-surface">
             <div className="panel-header">
-              <h2>Past decisions</h2>
+              <h2>All events</h2>
               <div className="history-actions">
                 <label>
                   Sort
@@ -188,7 +204,8 @@ function ApprovalDashboard({ role, onOpenEvent = () => {} }) {
                 <EventCard
                   key={ev.id}
                   event={ev}
-                  onDownload={() => downloadBudget(ev.id)}
+                  onDownloadPreEvent={downloadPreEvent}
+                  onDownloadInflowOutflow={downloadInflowOutflow}
                   downloading={downloadWorkingId === ev.id}
                   onOpen={(id) => onOpenEvent(id, { readOnly: true })}
                 />

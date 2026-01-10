@@ -6,7 +6,9 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.example.odysseyeventapproval.dto.BudgetItemDto;
+import org.example.odysseyeventapproval.dto.BudgetPhotoDto;
 import org.example.odysseyeventapproval.model.Event;
 import org.example.odysseyeventapproval.model.SubEvent;
 import org.springframework.stereotype.Service;
@@ -27,11 +29,17 @@ public class BudgetReportService {
     private static final PDType1Font FONT_COURIER = new PDType1Font(Standard14Fonts.FontName.COURIER);
     private static final PDType1Font FONT_COURIER_BOLD = new PDType1Font(Standard14Fonts.FontName.COURIER_BOLD);
 
-    public byte[] generateEventBudgetReport(Event event) {
+    private final BudgetPhotoStorageService budgetPhotoStorageService;
+
+    public BudgetReportService(BudgetPhotoStorageService budgetPhotoStorageService) {
+        this.budgetPhotoStorageService = budgetPhotoStorageService;
+    }
+
+    public byte[] generatePreEventReport(Event event) {
         try (PDDocument document = new PDDocument()) {
             PageState state = newPage(document);
 
-            writeTitle(state, "Event Budget Summary");
+            writeTitle(state, "Pre-event Document");
             writeText(state, String.format("Event: %s", event.getTitle()), FONT_HELVETICA_BOLD);
             writeWrappedText(state, String.format("Description: %s", event.getDescription()));
             writeText(state, String.format("Student Owner: %s", event.getStudent().getDisplayName()));
@@ -41,9 +49,11 @@ public class BudgetReportService {
             BigDecimal grandTotal = BigDecimal.ZERO;
             for (SubEvent subEvent : event.getSubEvents()) {
                 List<BudgetItemDto> items = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
+                List<BudgetItemDto> inflowItems = BudgetItemDto.parse(subEvent.getInflowBreakdown());
                 BigDecimal subTotal = resolveBudgetTotal(subEvent, items);
                 grandTotal = grandTotal.add(subTotal);
-                writeSubEvent(state, subEvent, items, subTotal);
+                writeSubEvent(state, subEvent, items, inflowItems, subTotal);
+                writePhotoSection(state, subEvent);
             }
 
             writeText(state, " ");
@@ -61,13 +71,48 @@ public class BudgetReportService {
         }
     }
 
+    public byte[] generateInflowOutflowReport(Event event) {
+        try (PDDocument document = new PDDocument()) {
+            PageState state = newPage(document);
+
+            writeTitle(state, "Inflow & Outflow Summary");
+            writeText(state, String.format("Event: %s", event.getTitle()), FONT_HELVETICA_BOLD);
+            writeWrappedText(state, String.format("Description: %s", event.getDescription()));
+            writeText(state, String.format("Student Owner: %s", event.getStudent().getDisplayName()));
+            writeText(state, " ");
+
+            for (SubEvent subEvent : event.getSubEvents()) {
+                List<BudgetItemDto> inflowItems = BudgetItemDto.parse(subEvent.getInflowBreakdown());
+                List<BudgetItemDto> budgetItems = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
+                writeText(state, String.format("Sub-event: %s (%s)", subEvent.getName(), subEvent.getClub().getName()), FONT_HELVETICA_BOLD);
+                writeText(state, String.format("POC: %s (%s)", subEvent.getPocName(), subEvent.getPocPhone()));
+                writeText(state, "Inflow sources", FONT_HELVETICA_BOLD);
+                writeInflowItems(state, inflowItems);
+                writeText(state, String.format("Inflow total: %s", formatAmount(calculateTotal(inflowItems))), FONT_HELVETICA_BOLD);
+                writeText(state, "Outflow (budget breakdown)", FONT_HELVETICA_BOLD);
+                writeBudgetItems(state, budgetItems);
+                writeText(state, String.format("Outflow total: %s", formatAmount(resolveBudgetTotal(subEvent, budgetItems))), FONT_HELVETICA_BOLD);
+                writeText(state, repeat('-', 95), FONT_COURIER);
+            }
+
+            state.stream.close();
+
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                document.save(output);
+                return output.toByteArray();
+            }
+        } catch (IOException ex) {
+            throw new IllegalStateException("Unable to generate inflow/outflow report", ex);
+        }
+    }
+
     private void writeTableHeader(PageState state) throws IOException {
         writeText(state, repeat('=', 95), FONT_COURIER);
         writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", "Sub-Event", "POC", "Phone", "Budget Head", "Total (INR)"), FONT_COURIER_BOLD);
         writeText(state, String.format("%-26s %-16s %-14s %-19s %12s", repeat('-', 12), repeat('-', 8), repeat('-', 8), repeat('-', 10), repeat('-', 10)), FONT_COURIER);
     }
 
-    private void writeSubEvent(PageState state, SubEvent subEvent, List<BudgetItemDto> items, BigDecimal total) throws IOException {
+    private void writeSubEvent(PageState state, SubEvent subEvent, List<BudgetItemDto> items, List<BudgetItemDto> inflowItems, BigDecimal total) throws IOException {
         List<String> nameLines = wrap(subEvent.getName(), 26);
         List<String> pocLines = wrap(subEvent.getPocName(), 16);
         List<String> phoneLines = wrap(subEvent.getPocPhone(), 14);
@@ -85,24 +130,91 @@ public class BudgetReportService {
             );
             writeText(state, header, FONT_COURIER);
         }
+        writeText(state, String.format("         Club: %s", subEvent.getClub().getName()), FONT_COURIER);
 
         if (items.isEmpty()) {
             writeText(state, "         • No budget items provided", FONT_COURIER);
         } else {
-            for (BudgetItemDto item : items) {
-                List<String> descLines = wrap(item.getDescription(), 52);
-                for (int idx = 0; idx < descLines.size(); idx++) {
-                    String line = String.format("         %s %-52s %10s",
-                            idx == 0 ? "•" : " ",
-                            descLines.get(idx),
-                            idx == 0 ? formatAmount(item.getAmount()) : "");
-                    writeText(state, line, FONT_COURIER);
-                }
-            }
+            writeBudgetItems(state, items);
             writeText(state, String.format("      Sub-total: %s", formatAmount(total)), FONT_HELVETICA_BOLD);
         }
 
+        if (inflowItems.isEmpty()) {
+            writeText(state, "         • No inflow sources provided", FONT_COURIER);
+        } else {
+            writeText(state, "      Inflow sources", FONT_HELVETICA_BOLD);
+            writeInflowItems(state, inflowItems);
+            writeText(state, String.format("      Inflow total: %s", formatAmount(calculateTotal(inflowItems))), FONT_HELVETICA_BOLD);
+        }
+
         writeText(state, repeat('-', 95), FONT_COURIER);
+    }
+
+    private void writeBudgetItems(PageState state, List<BudgetItemDto> items) throws IOException {
+        for (BudgetItemDto item : items) {
+            List<String> descLines = wrap(item.getDescription(), 52);
+            for (int idx = 0; idx < descLines.size(); idx++) {
+                String line = String.format("         %s %-52s %10s",
+                        idx == 0 ? "•" : " ",
+                        descLines.get(idx),
+                        idx == 0 ? formatAmount(item.getAmount()) : "");
+                writeText(state, line, FONT_COURIER);
+            }
+        }
+    }
+
+    private void writeInflowItems(PageState state, List<BudgetItemDto> items) throws IOException {
+        for (BudgetItemDto item : items) {
+            List<String> descLines = wrap(item.getDescription(), 52);
+            for (int idx = 0; idx < descLines.size(); idx++) {
+                String line = String.format("         %s %-52s %10s",
+                        idx == 0 ? "•" : " ",
+                        descLines.get(idx),
+                        idx == 0 ? formatAmount(item.getAmount()) : "");
+                writeText(state, line, FONT_COURIER);
+            }
+        }
+    }
+
+    private void writePhotoSection(PageState state, SubEvent subEvent) throws IOException {
+        List<BudgetPhotoDto.BudgetPhotoItem> photos = BudgetPhotoDto.parse(subEvent.getBudgetPhotos());
+        if (photos.isEmpty()) {
+            return;
+        }
+        writeText(state, "Budget photos", FONT_HELVETICA_BOLD);
+        for (BudgetPhotoDto.BudgetPhotoItem photo : photos) {
+            if (photo == null || photo.getUrl() == null || photo.getUrl().isBlank()) {
+                continue;
+            }
+            try {
+                byte[] imageBytes = readPhotoBytes(photo.getUrl());
+                if (imageBytes == null || imageBytes.length == 0) {
+                    continue;
+                }
+                PDImageXObject image = PDImageXObject.createFromByteArray(state.document, imageBytes, "budget-photo");
+                float maxWidth = state.page.getMediaBox().getWidth() - (2 * MARGIN);
+                float scale = Math.min(1f, maxWidth / image.getWidth());
+                float displayWidth = image.getWidth() * scale;
+                float displayHeight = image.getHeight() * scale;
+                ensureSpace(state, displayHeight + LINE_HEIGHT);
+                state.stream.drawImage(image, MARGIN, state.y - displayHeight, displayWidth, displayHeight);
+                state.y -= (displayHeight + LINE_HEIGHT);
+                if (photo.getDescription() != null && !photo.getDescription().isBlank()) {
+                    writeWrappedWithPrefix(state, "Description: ", photo.getDescription(), 90);
+                }
+            } catch (IOException | IllegalArgumentException ex) {
+                writeText(state, "         • Unable to load a budget photo", FONT_COURIER);
+            }
+        }
+        writeText(state, " ");
+    }
+
+    private byte[] readPhotoBytes(String url) {
+        String filename = url.substring(url.lastIndexOf('/') + 1);
+        if (filename.isBlank()) {
+            return null;
+        }
+        return budgetPhotoStorageService.loadBytes(filename);
     }
 
     private BigDecimal resolveBudgetTotal(SubEvent subEvent, List<BudgetItemDto> items) {
@@ -165,6 +277,16 @@ public class BudgetReportService {
 
     private void ensureSpace(PageState state) throws IOException {
         if (state.y <= MARGIN) {
+            state.stream.close();
+            state.page = new PDPage(PDRectangle.A4);
+            state.document.addPage(state.page);
+            state.stream = new PDPageContentStream(state.document, state.page);
+            state.y = state.page.getMediaBox().getHeight() - MARGIN;
+        }
+    }
+
+    private void ensureSpace(PageState state, float neededHeight) throws IOException {
+        if (state.y - neededHeight <= MARGIN) {
             state.stream.close();
             state.page = new PDPage(PDRectangle.A4);
             state.document.addPage(state.page);

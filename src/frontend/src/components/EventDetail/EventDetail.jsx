@@ -8,11 +8,13 @@ import './EventDetail.scss'
 
 const EMPTY_BUDGET_ITEM = { description: '', amount: '' }
 const createBudgetItem = () => ({ ...EMPTY_BUDGET_ITEM })
+const createInflowItem = () => ({ ...EMPTY_BUDGET_ITEM })
 const createSubEvent = () => ({
   name: '',
   clubId: '',
   budgetHead: '',
   budgetItems: [createBudgetItem()],
+  inflowItems: [createInflowItem()],
   budgetPhotos: [],
   pocUsername: '',
   pocName: '',
@@ -23,13 +25,16 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [decisionNotice, setDecisionNotice] = useState({ open: false, type: '', text: '' })
   const [remark, setRemark] = useState('')
   const [working, setWorking] = useState(false)
   const [downloadWorking, setDownloadWorking] = useState(false)
+  const [inflowWorking, setInflowWorking] = useState(false)
   const [subEventWorkingId, setSubEventWorkingId] = useState(null)
   const [clubs, setClubs] = useState([])
   const [newSubEvent, setNewSubEvent] = useState(createSubEvent())
   const [addingSubEvent, setAddingSubEvent] = useState(false)
+  const [showAddSubEvent, setShowAddSubEvent] = useState(false)
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [pocSuggestions, setPocSuggestions] = useState([])
 
@@ -63,6 +68,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
         const data = await api(`/api/events/${eventId}`)
         setEvent(data)
         setRemark('')
+        setShowAddSubEvent(false)
       } catch (err) {
         setMessage({ type: 'error', text: err.message || 'Could not load event details.' })
         setEvent(null)
@@ -84,9 +90,9 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
   const decide = async (approve) => {
     if (!event) return
     setWorking(true)
-    setMessage({ type: '', text: '' })
+    setDecisionNotice({ open: false, type: '', text: '' })
     if (!approve && !remark.trim()) {
-      setMessage({ type: 'error', text: 'Please add a remark before declining.' })
+      setDecisionNotice({ open: true, type: 'error', text: 'Please add a remark before declining.' })
       setWorking(false)
       return
     }
@@ -95,12 +101,12 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
         method: 'POST',
         body: JSON.stringify({ approve, remark }),
       })
-      setMessage({ type: 'success', text: approve ? 'Event approved.' : 'Event declined.' })
+      setDecisionNotice({ open: true, type: 'success', text: approve ? 'Event approved.' : 'Event declined.' })
       setRemark('')
       const refreshed = await api(`/api/events/${event.id}`)
       setEvent(refreshed)
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Action failed. Please try again.' })
+      setDecisionNotice({ open: true, type: 'error', text: err.message || 'Action failed. Please try again.' })
     } finally {
       setWorking(false)
     }
@@ -109,7 +115,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
   const decideSubEvent = async (subEventId, approve) => {
     if (!event) return
     setSubEventWorkingId(subEventId)
-    setMessage({ type: '', text: '' })
+    setDecisionNotice({ open: false, type: '', text: '' })
     try {
       await api(`/api/sub-events/${subEventId}/decision`, {
         method: 'POST',
@@ -117,9 +123,9 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
       })
       const refreshed = await api(`/api/events/${event.id}`)
       setEvent(refreshed)
-      setMessage({ type: 'success', text: approve ? 'Sub-event approved.' : 'Sub-event declined.' })
+      setDecisionNotice({ open: true, type: 'success', text: approve ? 'Sub-event approved.' : 'Sub-event declined.' })
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Could not update sub-event status.' })
+      setDecisionNotice({ open: true, type: 'error', text: err.message || 'Could not update sub-event status.' })
     } finally {
       setSubEventWorkingId(null)
     }
@@ -130,12 +136,26 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
     setDownloadWorking(true)
     setMessage({ type: '', text: '' })
     try {
-      await downloadFile(`/api/events/${event.id}/budget.pdf`, `event-${event.id}-budget.pdf`)
-      setMessage({ type: 'success', text: 'Budget PDF downloaded.' })
+      await downloadFile(`/api/events/${event.id}/pre-event.pdf`, `event-${event.id}-pre-event.pdf`)
+      setMessage({ type: 'success', text: 'Pre-event document downloaded.' })
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Could not download budget PDF.' })
+      setMessage({ type: 'error', text: err.message || 'Could not download pre-event document.' })
     } finally {
       setDownloadWorking(false)
+    }
+  }
+
+  const handleInflowOutflowDownload = async () => {
+    if (!event) return
+    setInflowWorking(true)
+    setMessage({ type: '', text: '' })
+    try {
+      await downloadFile(`/api/events/${event.id}/inflow-outflow.pdf`, `event-${event.id}-inflow-outflow.pdf`)
+      setMessage({ type: 'success', text: 'Inflow/outflow document downloaded.' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Could not download inflow/outflow document.' })
+    } finally {
+      setInflowWorking(false)
     }
   }
 
@@ -159,6 +179,14 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
     if (user?.role === 'DEAN') return sub.deanStatus
     return sub.saStatus
   }
+  const eventDecisionStatus = () => {
+    if (!event) return 'PENDING'
+    if (user?.role === 'SA_OFFICE') return event.saStatus
+    if (user?.role === 'FACULTY_COORDINATOR') return event.facultyStatus
+    if (user?.role === 'DEAN') return event.deanStatus
+    return event.saStatus
+  }
+  const allSubEventsDecided = event?.subEvents?.every((sub) => subEventDecisionStatus(sub) !== 'PENDING')
 
   const updateNewSubEvent = (field, value) => {
     setNewSubEvent((prev) => ({ ...prev, [field]: value }))
@@ -172,10 +200,25 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
     })
   }
 
+  const updateNewInflowItem = (index, field, value) => {
+    setNewSubEvent((prev) => {
+      const items = [...(prev.inflowItems || [])]
+      items[index] = { ...items[index], [field]: value }
+      return { ...prev, inflowItems: items }
+    })
+  }
+
   const addNewBudgetItem = () => {
     setNewSubEvent((prev) => ({
       ...prev,
       budgetItems: [...(prev.budgetItems || []), createBudgetItem()],
+    }))
+  }
+
+  const addNewInflowItem = () => {
+    setNewSubEvent((prev) => ({
+      ...prev,
+      inflowItems: [...(prev.inflowItems || []), createInflowItem()],
     }))
   }
 
@@ -184,6 +227,14 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
       const items = [...(prev.budgetItems || [])]
       if (items.length <= 1) return prev
       return { ...prev, budgetItems: items.filter((_, idx) => idx !== index) }
+    })
+  }
+
+  const removeNewInflowItem = (index) => {
+    setNewSubEvent((prev) => {
+      const items = [...(prev.inflowItems || [])]
+      if (items.length <= 1) return prev
+      return { ...prev, inflowItems: items.filter((_, idx) => idx !== index) }
     })
   }
 
@@ -252,6 +303,10 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
           description: item.description,
           amount: Number(item.amount),
         })),
+        inflowItems: newSubEvent.inflowItems.map((item) => ({
+          description: item.description,
+          amount: Number(item.amount),
+        })),
         budgetPhotos: newSubEvent.budgetPhotos || [],
       }
       await api(`/api/events/${event.id}/sub-events`, {
@@ -261,6 +316,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
       const refreshed = await api(`/api/events/${event.id}`)
       setEvent(refreshed)
       setNewSubEvent(createSubEvent())
+      setShowAddSubEvent(false)
       setMessage({ type: 'success', text: 'Sub-event added.' })
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Could not add sub-event.' })
@@ -301,12 +357,34 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
             Back to dashboard
           </button>
           <button className="ghost" onClick={handleDownload} disabled={downloadWorking || !event}>
-            {downloadWorking ? 'Preparing PDF...' : 'Download budget PDF'}
+            {downloadWorking ? 'Preparing document...' : 'Download pre-event document'}
+          </button>
+          <button className="ghost" onClick={handleInflowOutflowDownload} disabled={inflowWorking || !event}>
+            {inflowWorking ? 'Preparing document...' : 'Download inflow/outflow document'}
           </button>
         </div>
       </div>
 
       <Banner status={message} />
+      {decisionNotice.open && (
+        <div className="decision-modal" role="dialog" aria-live="polite">
+          <div
+            className="decision-modal__backdrop"
+            onClick={() => setDecisionNotice({ open: false, type: '', text: '' })}
+          />
+          <div className="decision-modal__content">
+            <p className={`decision-modal__title ${decisionNotice.type}`}>{decisionNotice.type === 'error' ? 'Action failed' : 'Action completed'}</p>
+            <p className="decision-modal__message">{decisionNotice.text}</p>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => setDecisionNotice({ open: false, type: '', text: '' })}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       {loading && <p className="muted">Loading event information...</p>}
       {!loading && !event && <p className="muted">Could not find this event.</p>}
 
@@ -324,7 +402,14 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                 <p className="muted">Each sub-event is separated for clarity</p>
                 <h2>Sub-events and budgets</h2>
               </div>
-              {event.subEvents?.length > 3 && <span className="pill muted-pill">{event.subEvents.length} entries</span>}
+              <div className="section-header__actions">
+                {event.subEvents?.length > 3 && <span className="pill muted-pill">{event.subEvents.length} entries</span>}
+                {canEditSubEvents && (
+                  <button type="button" className="ghost" onClick={() => setShowAddSubEvent((prev) => !prev)}>
+                    {showAddSubEvent ? 'Hide sub-event form' : 'Add sub-event'}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="subevent-grid">
               {event.subEvents?.map((sub) => (
@@ -347,6 +432,20 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                   </div>
                   <div className="subevent-budgets">
                     <div className="budget-summary">Total budget: ₹{formatAmount(sub.budgetTotal ?? calcTotal(sub.budgetItems))}</div>
+                    {sub.inflowItems?.length > 0 && (
+                      <div className="budget-table">
+                        <div className="budget-table__header">
+                          <span>Inflow source</span>
+                          <span>Amount</span>
+                        </div>
+                        {sub.inflowItems.map((item, idx) => (
+                          <div key={`inflow-${idx}`} className="budget-table__row">
+                            <span>{item.description}</span>
+                            <span>₹{Number(item.amount || 0).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {sub.budgetItems?.length > 0 && (
                       <div className="budget-table">
                         <div className="budget-table__header">
@@ -381,23 +480,25 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                   {canDecideSubEvents && (
                     <div className="subevent-decision">
                       <p className="muted">Your decision: {stageLabel(subEventDecisionStatus(sub))}</p>
-                      <div className="actions">
-                        <button
-                          type="button"
-                          disabled={subEventWorkingId === sub.id}
-                          onClick={() => decideSubEvent(sub.id, true)}
-                        >
-                          {subEventWorkingId === sub.id ? 'Working...' : 'Approve sub-event'}
-                        </button>
-                        <button
-                          type="button"
-                          className="danger"
-                          disabled={subEventWorkingId === sub.id}
-                          onClick={() => decideSubEvent(sub.id, false)}
-                        >
-                          Decline sub-event
-                        </button>
-                      </div>
+                      {subEventDecisionStatus(sub) === 'PENDING' && (
+                        <div className="actions">
+                          <button
+                            type="button"
+                            disabled={subEventWorkingId === sub.id}
+                            onClick={() => decideSubEvent(sub.id, true)}
+                          >
+                            {subEventWorkingId === sub.id ? 'Working...' : 'Approve sub-event'}
+                          </button>
+                          <button
+                            type="button"
+                            className="danger"
+                            disabled={subEventWorkingId === sub.id}
+                            onClick={() => decideSubEvent(sub.id, false)}
+                          >
+                            Decline sub-event
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                   {canEditSubEvents && event.subEvents?.length > 1 && (
@@ -410,7 +511,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
             </div>
           </section>
 
-          {canEditSubEvents && (
+          {canEditSubEvents && showAddSubEvent && (
             <section className="subevent-edit card-surface">
               <div className="section-header">
                 <div>
@@ -475,6 +576,39 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                     </div>
                   ))}
                   <p className="muted total-row">Total: {calcTotal(newSubEvent.budgetItems || []).toFixed(2)}</p>
+                </div>
+                <div className="budget-list">
+                  <div className="budget-list-header">
+                    <strong>Inflow sources</strong>
+                    <button type="button" className="ghost compact" onClick={addNewInflowItem}>
+                      + Add source
+                    </button>
+                  </div>
+                  {(newSubEvent.inflowItems || [{ ...EMPTY_BUDGET_ITEM }]).map((item, idx) => (
+                    <div key={`inflow-${idx}`} className="budget-row">
+                      <input
+                        placeholder="Source description"
+                        value={item.description}
+                        onChange={(e) => updateNewInflowItem(idx, 'description', e.target.value)}
+                        required
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Amount"
+                        value={item.amount}
+                        onChange={(e) => updateNewInflowItem(idx, 'amount', e.target.value)}
+                        required
+                      />
+                      {newSubEvent.inflowItems?.length > 1 && (
+                        <button type="button" className="ghost compact" onClick={() => removeNewInflowItem(idx)}>
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <p className="muted total-row">Total: {calcTotal(newSubEvent.inflowItems || []).toFixed(2)}</p>
                 </div>
                 <div className="budget-photos">
                   <div className="budget-photos__header">
@@ -561,18 +695,26 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                   <h2>Approve or decline</h2>
                 </div>
               </div>
-              <label>
-                Remark (required when declining)
-                <textarea value={remark} onChange={(e) => setRemark(e.target.value)} placeholder="Share context for your decision" />
-              </label>
-              <div className="actions">
-                <button onClick={() => decide(true)} disabled={working}>
-                  {working ? 'Working...' : 'Approve'}
-                </button>
-                <button className="danger" onClick={() => decide(false)} disabled={working}>
-                  Decline
-                </button>
-              </div>
+              {!allSubEventsDecided && (
+                <p className="muted">Approve or decline all sub-events before deciding on the overall event.</p>
+              )}
+              <p className="muted">Your decision: {stageLabel(eventDecisionStatus())}</p>
+              {eventDecisionStatus() === 'PENDING' && allSubEventsDecided && (
+                <>
+                  <label>
+                    Remark (required when declining)
+                    <textarea value={remark} onChange={(e) => setRemark(e.target.value)} placeholder="Share context for your decision" />
+                  </label>
+                  <div className="actions">
+                    <button onClick={() => decide(true)} disabled={working}>
+                      {working ? 'Working...' : 'Approve'}
+                    </button>
+                    <button className="danger" onClick={() => decide(false)} disabled={working}>
+                      Decline
+                    </button>
+                  </div>
+                </>
+              )}
             </section>
           )}
         </>

@@ -11,11 +11,13 @@ import './StudentDashboard.scss'
 const STAGES_COMPLETE = ['APPROVED', 'REJECTED']
 const EMPTY_BUDGET_ITEM = { description: '', amount: '' }
 const createBudgetItem = () => ({ ...EMPTY_BUDGET_ITEM })
+const createInflowItem = () => ({ ...EMPTY_BUDGET_ITEM })
 const createSubEvent = () => ({
   name: '',
   clubId: '',
   budgetHead: '',
   budgetItems: [createBudgetItem()],
+  inflowItems: [createInflowItem()],
   budgetPhotos: [],
   pocUsername: '',
   pocName: '',
@@ -94,6 +96,10 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
           description: item.description,
           amount: Number(item.amount),
         })),
+        inflowItems: sub.inflowItems.map((item) => ({
+          description: item.description,
+          amount: Number(item.amount),
+        })),
         budgetPhotos: sub.budgetPhotos || [],
       }))
       await api('/api/events', {
@@ -139,14 +145,35 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
     setSubEvents(updated)
   }
 
-  const downloadBudget = async (eventId) => {
+  const addInflowItem = (subIndex) => {
+    const updated = [...subEvents]
+    const items = [...(updated[subIndex].inflowItems || [])]
+    items.push(createInflowItem())
+    updated[subIndex] = { ...updated[subIndex], inflowItems: items }
+    setSubEvents(updated)
+  }
+
+  const downloadPreEvent = async (eventId) => {
     setDownloadWorkingId(eventId)
     setDownloadMessage({ type: '', text: '' })
     try {
-      await downloadFile(`/api/events/${eventId}/budget.pdf`, `event-${eventId}-budget.pdf`)
-      setDownloadMessage({ type: 'success', text: 'Budget PDF downloaded.' })
+      await downloadFile(`/api/events/${eventId}/pre-event.pdf`, `event-${eventId}-pre-event.pdf`)
+      setDownloadMessage({ type: 'success', text: 'Pre-event document downloaded.' })
     } catch (err) {
-      setDownloadMessage({ type: 'error', text: err.message || 'Could not download budget PDF.' })
+      setDownloadMessage({ type: 'error', text: err.message || 'Could not download pre-event document.' })
+    } finally {
+      setDownloadWorkingId(null)
+    }
+  }
+
+  const downloadInflowOutflow = async (eventId) => {
+    setDownloadWorkingId(eventId)
+    setDownloadMessage({ type: '', text: '' })
+    try {
+      await downloadFile(`/api/events/${eventId}/inflow-outflow.pdf`, `event-${eventId}-inflow-outflow.pdf`)
+      setDownloadMessage({ type: 'success', text: 'Inflow/outflow document downloaded.' })
+    } catch (err) {
+      setDownloadMessage({ type: 'error', text: err.message || 'Could not download inflow/outflow document.' })
     } finally {
       setDownloadWorkingId(null)
     }
@@ -157,6 +184,14 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
     const items = [...(updated[subIndex].budgetItems || [])]
     items[itemIndex] = { ...items[itemIndex], [field]: value }
     updated[subIndex] = { ...updated[subIndex], budgetItems: items }
+    setSubEvents(updated)
+  }
+
+  const updateInflowItem = (subIndex, itemIndex, field, value) => {
+    const updated = [...subEvents]
+    const items = [...(updated[subIndex].inflowItems || [])]
+    items[itemIndex] = { ...items[itemIndex], [field]: value }
+    updated[subIndex] = { ...updated[subIndex], inflowItems: items }
     setSubEvents(updated)
   }
 
@@ -215,6 +250,14 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
     setSubEvents(updated)
   }
 
+  const removeInflowItem = (subIndex, itemIndex) => {
+    const updated = [...subEvents]
+    const items = [...(updated[subIndex].inflowItems || [])]
+    if (items.length === 1) return
+    updated[subIndex] = { ...updated[subIndex], inflowItems: items.filter((_, idx) => idx !== itemIndex) }
+    setSubEvents(updated)
+  }
+
   const updateSubEvent = (index, field, value) => {
     const updated = [...subEvents]
     updated[index] = { ...updated[index], [field]: value }
@@ -254,6 +297,9 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
       if (!sub.budgetItems?.length) {
         return `Add at least one budget line for sub-event #${index + 1}`
       }
+      if (!sub.inflowItems?.length) {
+        return `Add at least one inflow source for sub-event #${index + 1}`
+      }
       let hasInvalidLine = false
       let total = 0
       for (const item of sub.budgetItems) {
@@ -266,6 +312,19 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
       }
       if (hasInvalidLine || total <= 0) {
         return `Please provide valid descriptions and positive amounts for sub-event #${index + 1}`
+      }
+      let inflowInvalid = false
+      let inflowTotal = 0
+      for (const item of sub.inflowItems) {
+        const amount = Number(item.amount)
+        if (!item.description?.trim() || !amount || amount <= 0) {
+          inflowInvalid = true
+          break
+        }
+        inflowTotal += amount
+      }
+      if (inflowInvalid || inflowTotal <= 0) {
+        return `Please provide valid inflow sources and positive amounts for sub-event #${index + 1}`
       }
     }
     return ''
@@ -462,7 +521,8 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                   <EventCard
                     key={ev.id}
                     event={ev}
-                    onDownload={() => downloadBudget(ev.id)}
+                    onDownloadPreEvent={downloadPreEvent}
+                    onDownloadInflowOutflow={downloadInflowOutflow}
                     downloading={downloadWorkingId === ev.id}
                     onOpen={onOpenEvent}
                   />
@@ -489,7 +549,8 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                 <EventCard
                   key={ev.id}
                   event={ev}
-                  onDownload={() => downloadBudget(ev.id)}
+                  onDownloadPreEvent={downloadPreEvent}
+                  onDownloadInflowOutflow={downloadInflowOutflow}
                   downloading={downloadWorkingId === ev.id}
                   onOpen={onOpenEvent}
                 />
@@ -510,7 +571,8 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                 <EventCard
                   key={ev.id}
                   event={ev}
-                  onDownload={() => downloadBudget(ev.id)}
+                  onDownloadPreEvent={downloadPreEvent}
+                  onDownloadInflowOutflow={downloadInflowOutflow}
                   downloading={downloadWorkingId === ev.id}
                   onOpen={onOpenEvent}
                 />
@@ -610,6 +672,39 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                             </div>
                         ))}
                         <p className="muted total-row">Total: {calcTotal(sub.budgetItems || []).toFixed(2)}</p>
+                      </div>
+                      <div className="budget-list">
+                        <div className="budget-list-header">
+                          <strong>Inflow sources</strong>
+                          <button type="button" className="ghost compact" onClick={() => addInflowItem(index)}>
+                            + Add source
+                          </button>
+                        </div>
+                        {(sub.inflowItems || [{ ...EMPTY_BUDGET_ITEM }]).map((item, idx) => (
+                          <div key={`inflow-${idx}`} className="budget-row">
+                            <input
+                              placeholder="Source description"
+                              value={item.description}
+                              onChange={(e) => updateInflowItem(index, idx, 'description', e.target.value)}
+                              required
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Amount"
+                              value={item.amount}
+                              onChange={(e) => updateInflowItem(index, idx, 'amount', e.target.value)}
+                              required
+                            />
+                            {sub.inflowItems?.length > 1 && (
+                              <button type="button" className="ghost compact" onClick={() => removeInflowItem(index, idx)}>
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <p className="muted total-row">Total: {calcTotal(sub.inflowItems || []).toFixed(2)}</p>
                       </div>
                       <div className="budget-photos">
                         <div className="budget-photos__header">
