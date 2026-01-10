@@ -56,6 +56,16 @@
             <version>3.0.6</version>
         </dependency>
         <dependency>
+            <groupId>com.luciad</groupId>
+            <artifactId>luciad-imageio-webp</artifactId>
+            <version>1.6.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.xmlgraphics</groupId>
+            <artifactId>batik-transcoder</artifactId>
+            <version>1.18</version>
+        </dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>

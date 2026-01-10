@@ -13,12 +13,19 @@ import org.example.odysseyeventapproval.model.Event;
 import org.example.odysseyeventapproval.model.SubEvent;
 import org.springframework.stereotype.Service;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import javax.imageio.ImageIO;
+import java.nio.charset.StandardCharsets;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 
 @Service
 public class BudgetReportService {
@@ -191,7 +198,7 @@ public class BudgetReportService {
                 if (imageBytes == null || imageBytes.length == 0) {
                     continue;
                 }
-                PDImageXObject image = PDImageXObject.createFromByteArray(state.document, imageBytes, "budget-photo");
+                PDImageXObject image = createImageXObject(state.document, imageBytes);
                 float maxWidth = state.page.getMediaBox().getWidth() - (2 * MARGIN);
                 float scale = Math.min(1f, maxWidth / image.getWidth());
                 float displayWidth = image.getWidth() * scale;
@@ -215,6 +222,34 @@ public class BudgetReportService {
             return null;
         }
         return budgetPhotoStorageService.loadBytes(filename);
+    }
+
+    private PDImageXObject createImageXObject(PDDocument document, byte[] imageBytes) throws IOException {
+        BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
+        if (bufferedImage != null) {
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                ImageIO.write(bufferedImage, "png", output);
+                return PDImageXObject.createFromByteArray(document, output.toByteArray(), "budget-photo");
+            }
+        }
+        if (isSvg(imageBytes)) {
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                PNGTranscoder transcoder = new PNGTranscoder();
+                transcoder.transcode(new TranscoderInput(new ByteArrayInputStream(imageBytes)), new TranscoderOutput(output));
+                return PDImageXObject.createFromByteArray(document, output.toByteArray(), "budget-photo");
+            } catch (Exception ex) {
+                throw new IOException("Unable to transcode SVG budget photo", ex);
+            }
+        }
+        return PDImageXObject.createFromByteArray(document, imageBytes, "budget-photo");
+    }
+
+    private boolean isSvg(byte[] imageBytes) {
+        if (imageBytes == null || imageBytes.length == 0) {
+            return false;
+        }
+        String header = new String(imageBytes, 0, Math.min(imageBytes.length, 256), StandardCharsets.UTF_8).trim();
+        return header.startsWith("<svg") || header.contains("<svg");
     }
 
     private BigDecimal resolveBudgetTotal(SubEvent subEvent, List<BudgetItemDto> items) {
