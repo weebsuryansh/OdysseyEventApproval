@@ -161,11 +161,23 @@ public class EventService {
         if (event.getStage() == EventStage.POC_REVIEW) {
             throw new IllegalStateException("All POCs must respond before approvals can proceed");
         }
+        if (!event.getSubEvents().isEmpty() && !allSubEventsDecided(event, approver.getRole())) {
+            throw new IllegalStateException("All sub-events must be approved or declined before deciding on the event");
+        }
         if (approver.getRole() == UserRole.SA_OFFICE && event.getStage() == EventStage.SA_REVIEW) {
+            if (event.getSaStatus() != DecisionStatus.PENDING) {
+                throw new IllegalStateException("Event decision already submitted");
+            }
             applyDecision(event, request, StageTarget.SA);
         } else if (approver.getRole() == UserRole.FACULTY_COORDINATOR && event.getStage() == EventStage.FACULTY_REVIEW) {
+            if (event.getFacultyStatus() != DecisionStatus.PENDING) {
+                throw new IllegalStateException("Event decision already submitted");
+            }
             applyDecision(event, request, StageTarget.FACULTY);
         } else if (approver.getRole() == UserRole.DEAN && event.getStage() == EventStage.DEAN_REVIEW) {
+            if (event.getDeanStatus() != DecisionStatus.PENDING) {
+                throw new IllegalStateException("Event decision already submitted");
+            }
             applyDecision(event, request, StageTarget.DEAN);
         } else {
             throw new IllegalStateException("User cannot decide on this stage");
@@ -192,6 +204,16 @@ public class EventService {
         if (!isStageForRole(approver.getRole(), event.getStage()) && event.getStage() != EventStage.APPROVED) {
             throw new IllegalStateException("User cannot decide on this sub-event at this stage");
         }
+        if (approver.getRole() == UserRole.SA_OFFICE && subEvent.getSaStatus() != DecisionStatus.PENDING) {
+            throw new IllegalStateException("Sub-event decision already submitted");
+        }
+        if (approver.getRole() == UserRole.FACULTY_COORDINATOR && subEvent.getFacultyStatus() != DecisionStatus.PENDING) {
+            throw new IllegalStateException("Sub-event decision already submitted");
+        }
+        if (approver.getRole() == UserRole.DEAN && subEvent.getDeanStatus() != DecisionStatus.PENDING) {
+            throw new IllegalStateException("Sub-event decision already submitted");
+        }
+
         DecisionStatus decisionStatus = request.isApprove() ? DecisionStatus.APPROVED : DecisionStatus.REJECTED;
 
         switch (approver.getRole()) {
@@ -352,6 +374,7 @@ public class EventService {
         subEvent.setClub(clubRepository.findById(request.getClubId())
                 .orElseThrow(() -> new IllegalArgumentException("Club not found")));
         applyBudgetDetails(subEvent, request.getBudgetHead(), request.getBudgetItems());
+        applyInflowDetails(subEvent, request.getInflowItems());
         subEvent.setBudgetPhotos(BudgetPhotoDto.toJson(request.getBudgetPhotos()));
         subEvent.setPoc(poc);
         subEvent.setPocName(request.getPocName());
@@ -417,6 +440,32 @@ public class EventService {
         subEvent.setBudgetHead(budgetHead.trim());
         subEvent.setBudgetTotal(total);
         subEvent.setBudgetBreakdown(BudgetItemDto.toJson(budgetItems));
+    }
+
+    private void applyInflowDetails(SubEvent subEvent, List<BudgetItemDto> inflowItems) {
+        if (inflowItems == null || inflowItems.isEmpty()) {
+            throw new IllegalArgumentException("Please add at least one inflow source");
+        }
+
+        for (BudgetItemDto item : inflowItems) {
+            if (item.getDescription() == null || item.getDescription().isBlank()) {
+                throw new IllegalArgumentException("Each inflow source needs a description");
+            }
+            if (item.getAmount() == null || item.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Inflow amounts must be positive");
+            }
+        }
+
+        subEvent.setInflowBreakdown(BudgetItemDto.toJson(inflowItems));
+    }
+
+    private boolean allSubEventsDecided(Event event, UserRole role) {
+        return event.getSubEvents().stream().allMatch(subEvent -> switch (role) {
+            case SA_OFFICE -> subEvent.getSaStatus() != DecisionStatus.PENDING;
+            case FACULTY_COORDINATOR -> subEvent.getFacultyStatus() != DecisionStatus.PENDING;
+            case DEAN -> subEvent.getDeanStatus() != DecisionStatus.PENDING;
+            default -> true;
+        });
     }
 
     private void notifyNextApprover(Event event) {

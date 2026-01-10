@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,9 +37,9 @@ public class BudgetPhotoController {
     }
 
     @GetMapping("/{filename}")
-    public ResponseEntity<Resource> serve(@PathVariable String filename) throws IOException {
+    public ResponseEntity<Resource> serve(@PathVariable String filename) {
         Resource resource = storageService.loadAsResource(filename);
-        String contentType = Files.probeContentType(storageService.resolve(filename));
+        String contentType = storageService.contentTypeFor(filename);
         MediaType mediaType = contentType != null ? MediaType.parseMediaType(contentType) : MediaType.APPLICATION_OCTET_STREAM;
         return ResponseEntity.ok().contentType(mediaType).body(resource);
     }

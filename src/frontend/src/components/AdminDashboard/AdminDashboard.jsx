@@ -110,15 +110,29 @@ function AdminDashboard() {
     }
   }
 
-  const downloadBudget = async () => {
+  const downloadPreEvent = async () => {
     if (!selectedEvent) return
     setDownloadWorking(true)
     setDownloadMessage({ type: '', text: '' })
     try {
-      await downloadFile(`/api/events/${selectedEvent.id}/budget.pdf`, `event-${selectedEvent.id}-budget.pdf`)
-      setDownloadMessage({ type: 'success', text: 'Budget PDF downloaded.' })
+      await downloadFile(`/api/events/${selectedEvent.id}/pre-event.pdf`, `event-${selectedEvent.id}-pre-event.pdf`)
+      setDownloadMessage({ type: 'success', text: 'Pre-event document downloaded.' })
     } catch (err) {
-      setDownloadMessage({ type: 'error', text: err.message || 'Could not download budget PDF.' })
+      setDownloadMessage({ type: 'error', text: err.message || 'Could not download pre-event document.' })
+    } finally {
+      setDownloadWorking(false)
+    }
+  }
+
+  const downloadInflowOutflow = async () => {
+    if (!selectedEvent) return
+    setDownloadWorking(true)
+    setDownloadMessage({ type: '', text: '' })
+    try {
+      await downloadFile(`/api/events/${selectedEvent.id}/inflow-outflow.pdf`, `event-${selectedEvent.id}-inflow-outflow.pdf`)
+      setDownloadMessage({ type: 'success', text: 'Inflow/outflow document downloaded.' })
+    } catch (err) {
+      setDownloadMessage({ type: 'error', text: err.message || 'Could not download inflow/outflow document.' })
     } finally {
       setDownloadWorking(false)
     }
@@ -296,8 +310,11 @@ function AdminDashboard() {
                     </div>
                     <div className="header-actions">
                       <span className={`badge stage ${selectedEvent.stage?.toLowerCase()}`}>{selectedEvent.stage}</span>
-                      <button className="ghost compact" onClick={downloadBudget} disabled={downloadWorking}>
-                        {downloadWorking ? 'Preparing PDF...' : 'Download budget PDF'}
+                      <button className="ghost compact" onClick={downloadPreEvent} disabled={downloadWorking}>
+                        {downloadWorking ? 'Preparing document...' : 'Download pre-event document'}
+                      </button>
+                      <button className="ghost compact" onClick={downloadInflowOutflow} disabled={downloadWorking}>
+                        {downloadWorking ? 'Preparing document...' : 'Download inflow/outflow document'}
                       </button>
                     </div>
                   </div>

@@ -13,6 +13,7 @@ public class PocRequestResponse {
     private String budgetHead;
     private java.math.BigDecimal budgetTotal;
     private List<BudgetItemDto> budgetItems;
+    private List<BudgetItemDto> inflowItems;
     private List<BudgetPhotoDto.BudgetPhotoItem> budgetPhotos;
     private String clubName;
     private String pocName;
@@ -30,6 +31,7 @@ public class PocRequestResponse {
         response.budgetHead = subEvent.getBudgetHead();
         response.budgetTotal = subEvent.getBudgetTotal();
         response.budgetItems = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
+        response.inflowItems = BudgetItemDto.parse(subEvent.getInflowBreakdown());
         response.budgetPhotos = BudgetPhotoDto.parse(subEvent.getBudgetPhotos());
         response.clubName = subEvent.getClub().getName();
         response.pocName = subEvent.getPocName();
@@ -69,6 +71,10 @@ public class PocRequestResponse {
 
     public List<BudgetItemDto> getBudgetItems() {
         return budgetItems;
+    }
+
+    public List<BudgetItemDto> getInflowItems() {
+        return inflowItems;
     }
 
     public List<BudgetPhotoDto.BudgetPhotoItem> getBudgetPhotos() {
