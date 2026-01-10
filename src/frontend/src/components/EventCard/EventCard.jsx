@@ -1,7 +1,7 @@
 import EventStatusPill from '../EventStatusPill/EventStatusPill'
 import './EventCard.scss'
 
-function EventCard({ event, onDownload, downloading, onOpen }) {
+function EventCard({ event, onDownloadPreEvent, onDownloadInflowOutflow, downloading, onOpen }) {
   const steps = [
     { label: 'SA Office', value: event.saStatus, remark: event.saRemark },
     { label: 'Faculty', value: event.facultyStatus, remark: event.facultyRemark },
@@ -54,9 +54,14 @@ function EventCard({ event, onDownload, downloading, onOpen }) {
           </div>
         </div>
         <div className="card-actions compact">
-          {onDownload && (
-            <button className="ghost compact" onClick={() => onDownload(event)} disabled={downloading}>
-              {downloading ? 'Preparing PDF...' : 'Budget PDF'}
+          {onDownloadPreEvent && (
+            <button className="ghost compact" onClick={() => onDownloadPreEvent(event.id)} disabled={downloading}>
+              {downloading ? 'Preparing document...' : 'Pre-event document'}
+            </button>
+          )}
+          {onDownloadInflowOutflow && (
+            <button className="ghost compact" onClick={() => onDownloadInflowOutflow(event.id)} disabled={downloading}>
+              {downloading ? 'Preparing document...' : 'Inflow/outflow'}
             </button>
           )}
           <button className="primary" onClick={openDetails}>

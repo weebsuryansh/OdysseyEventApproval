@@ -25,6 +25,9 @@ public class SubEvent {
     @Column(nullable = false, length = 2000)
     private String budgetBreakdown;
 
+    @Column(nullable = false, length = 2000)
+    private String inflowBreakdown = "[]";
+
     @Lob
     @Column(nullable = false)
     private String budgetPhotos = "[]";
@@ -101,6 +104,14 @@ public class SubEvent {
 
     public void setBudgetBreakdown(String budgetBreakdown) {
         this.budgetBreakdown = budgetBreakdown;
+    }
+
+    public String getInflowBreakdown() {
+        return inflowBreakdown;
+    }
+
+    public void setInflowBreakdown(String inflowBreakdown) {
+        this.inflowBreakdown = inflowBreakdown;
     }
 
     public String getBudgetPhotos() {
