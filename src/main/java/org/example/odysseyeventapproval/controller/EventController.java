@@ -5,6 +5,7 @@ import org.example.odysseyeventapproval.dto.EventRequest;
 import org.example.odysseyeventapproval.dto.EventResponse;
 import org.example.odysseyeventapproval.dto.SubEventRequest;
 import org.example.odysseyeventapproval.model.Event;
+import org.example.odysseyeventapproval.model.EventStage;
 import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.service.BudgetReportService;
 import org.example.odysseyeventapproval.service.CurrentUserService;
@@ -118,6 +119,22 @@ public class EventController {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=event-" + id + "-inflow-outflow.pdf")
+                .body(pdf);
+    }
+
+    @GetMapping(value = "/{id}/post-event.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyRole('STUDENT','SA_OFFICE','FACULTY_COORDINATOR','DEAN','ADMIN','DEV')")
+    public ResponseEntity<byte[]> downloadPostEventReport(@PathVariable Long id) {
+        User viewer = currentUserService.requireCurrentUser();
+        Event event = eventService.requireEventForViewer(viewer, id);
+        if (event.getStage() != EventStage.APPROVED) {
+            throw new IllegalStateException("Post-event report is available after approval");
+        }
+        byte[] pdf = budgetReportService.generatePostEventReport(event);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=event-" + id + "-post-event.pdf")
                 .body(pdf);
     }
 

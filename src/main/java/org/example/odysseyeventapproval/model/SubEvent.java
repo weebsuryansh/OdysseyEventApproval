@@ -32,6 +32,18 @@ public class SubEvent {
     @Column(nullable = false)
     private String budgetPhotos = "[]";
 
+    @Column(nullable = false, length = 8000)
+    private String afterEventItemsJson = "[]";
+
+    @Column(nullable = false, length = 8000)
+    private String afterEventImagesJson = "[]";
+
+    @Column(length = 16)
+    private String afterEventBudgetStatus;
+
+    @Column(precision = 14, scale = 2)
+    private BigDecimal afterEventBudgetDelta;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "poc_id")
     private User poc;
@@ -120,6 +132,38 @@ public class SubEvent {
 
     public void setBudgetPhotos(String budgetPhotos) {
         this.budgetPhotos = budgetPhotos;
+    }
+
+    public String getAfterEventItemsJson() {
+        return afterEventItemsJson;
+    }
+
+    public void setAfterEventItemsJson(String afterEventItemsJson) {
+        this.afterEventItemsJson = afterEventItemsJson;
+    }
+
+    public String getAfterEventImagesJson() {
+        return afterEventImagesJson;
+    }
+
+    public void setAfterEventImagesJson(String afterEventImagesJson) {
+        this.afterEventImagesJson = afterEventImagesJson;
+    }
+
+    public String getAfterEventBudgetStatus() {
+        return afterEventBudgetStatus;
+    }
+
+    public void setAfterEventBudgetStatus(String afterEventBudgetStatus) {
+        this.afterEventBudgetStatus = afterEventBudgetStatus;
+    }
+
+    public BigDecimal getAfterEventBudgetDelta() {
+        return afterEventBudgetDelta;
+    }
+
+    public void setAfterEventBudgetDelta(BigDecimal afterEventBudgetDelta) {
+        this.afterEventBudgetDelta = afterEventBudgetDelta;
     }
 
     public User getPoc() {
