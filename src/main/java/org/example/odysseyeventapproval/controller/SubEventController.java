@@ -1,5 +1,6 @@
 package org.example.odysseyeventapproval.controller;
 
+import org.example.odysseyeventapproval.dto.AfterEventRequest;
 import org.example.odysseyeventapproval.dto.DecisionRequest;
 import org.example.odysseyeventapproval.dto.SubEventResponse;
 import org.example.odysseyeventapproval.model.SubEvent;
@@ -25,6 +26,14 @@ public class SubEventController {
     public SubEventResponse decide(@PathVariable Long id, @RequestBody DecisionRequest request) {
         User approver = currentUserService.requireCurrentUser();
         SubEvent updated = eventService.decideOnSubEvent(approver, id, request);
+        return SubEventResponse.from(updated);
+    }
+
+    @PutMapping("/{id}/after-event")
+    @PreAuthorize("hasRole('STUDENT')")
+    public SubEventResponse updateAfterEvent(@PathVariable Long id, @RequestBody AfterEventRequest request) {
+        User student = currentUserService.requireCurrentUser();
+        SubEvent updated = eventService.updateAfterEvent(student, id, request);
         return SubEventResponse.from(updated);
     }
 }

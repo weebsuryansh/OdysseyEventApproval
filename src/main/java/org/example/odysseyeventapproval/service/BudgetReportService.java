@@ -7,6 +7,9 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.example.odysseyeventapproval.dto.AfterEventImageDto;
+import org.example.odysseyeventapproval.dto.AfterEventInvoiceDto;
+import org.example.odysseyeventapproval.dto.AfterEventItemDto;
 import org.example.odysseyeventapproval.dto.BudgetItemDto;
 import org.example.odysseyeventapproval.dto.BudgetPhotoDto;
 import org.example.odysseyeventapproval.model.Event;
@@ -37,9 +40,11 @@ public class BudgetReportService {
     private static final PDType1Font FONT_COURIER_BOLD = new PDType1Font(Standard14Fonts.FontName.COURIER_BOLD);
 
     private final BudgetPhotoStorageService budgetPhotoStorageService;
+    private final AfterEventFileStorageService afterEventFileStorageService;
 
-    public BudgetReportService(BudgetPhotoStorageService budgetPhotoStorageService) {
+    public BudgetReportService(BudgetPhotoStorageService budgetPhotoStorageService, AfterEventFileStorageService afterEventFileStorageService) {
         this.budgetPhotoStorageService = budgetPhotoStorageService;
+        this.afterEventFileStorageService = afterEventFileStorageService;
     }
 
     public byte[] generatePreEventReport(Event event) {
@@ -110,6 +115,61 @@ public class BudgetReportService {
             }
         } catch (IOException ex) {
             throw new IllegalStateException("Unable to generate inflow/outflow report", ex);
+        }
+    }
+
+    public byte[] generatePostEventReport(Event event) {
+        try (PDDocument document = new PDDocument()) {
+            PageState state = newPage(document);
+
+            writeTitle(state, "Post-event Document");
+            writeText(state, String.format("Event: %s", event.getTitle()), FONT_HELVETICA_BOLD);
+            writeWrappedText(state, String.format("Description: %s", event.getDescription()));
+            writeText(state, String.format("Student Owner: %s", event.getStudent().getDisplayName()));
+            writeText(state, " ");
+
+            BigDecimal grandProposed = BigDecimal.ZERO;
+            BigDecimal grandActual = BigDecimal.ZERO;
+            for (SubEvent subEvent : event.getSubEvents()) {
+                List<BudgetItemDto> inflowItems = BudgetItemDto.parse(subEvent.getInflowBreakdown());
+                List<BudgetItemDto> budgetItems = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
+                List<AfterEventItemDto> afterItems = AfterEventItemDto.parse(subEvent.getAfterEventItemsJson());
+                List<AfterEventImageDto> afterImages = AfterEventImageDto.parse(subEvent.getAfterEventImagesJson());
+
+                BigDecimal proposedTotal = resolveBudgetTotal(subEvent, budgetItems);
+                BigDecimal actualTotal = calculateAfterEventTotal(afterItems);
+                grandProposed = grandProposed.add(proposedTotal);
+                grandActual = grandActual.add(actualTotal);
+
+                writeText(state, String.format("Sub-event: %s (%s)", subEvent.getName(), subEvent.getClub().getName()), FONT_HELVETICA_BOLD);
+                writeText(state, String.format("POC: %s (%s)", subEvent.getPocName(), subEvent.getPocPhone()));
+                writeText(state, "Proposed budget breakdown", FONT_HELVETICA_BOLD);
+                writeBudgetItems(state, budgetItems);
+                writeText(state, String.format("Proposed total: %s", formatAmount(proposedTotal)), FONT_HELVETICA_BOLD);
+                writeText(state, "Inflow sources", FONT_HELVETICA_BOLD);
+                writeInflowItems(state, inflowItems);
+                writeText(state, String.format("Inflow total: %s", formatAmount(calculateTotal(inflowItems))), FONT_HELVETICA_BOLD);
+                writeText(state, "Actual expenditure", FONT_HELVETICA_BOLD);
+                writeAfterEventItems(state, afterItems);
+                writeText(state, String.format("Actual total: %s", formatAmount(actualTotal)), FONT_HELVETICA_BOLD);
+                writeAfterEventVariance(state, subEvent);
+                writeAfterEventImages(state, afterImages);
+                writeText(state, repeat('-', 95), FONT_COURIER);
+            }
+
+            writeText(state, " ");
+            writeText(state, "Event totals", FONT_HELVETICA_BOLD, 14f);
+            writeText(state, String.format("Proposed total: %s", formatAmount(grandProposed)), FONT_HELVETICA_BOLD);
+            writeText(state, String.format("Actual total: %s", formatAmount(grandActual)), FONT_HELVETICA_BOLD);
+
+            state.stream.close();
+
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                document.save(output);
+                return output.toByteArray();
+            }
+        } catch (IOException ex) {
+            throw new IllegalStateException("Unable to generate post-event report", ex);
         }
     }
 
@@ -216,12 +276,148 @@ public class BudgetReportService {
         writeText(state, " ");
     }
 
+    private void writeAfterEventItems(PageState state, List<AfterEventItemDto> items) throws IOException {
+        if (items == null || items.isEmpty()) {
+            writeText(state, "         • No after-event items provided", FONT_COURIER);
+            return;
+        }
+        for (AfterEventItemDto item : items) {
+            List<String> descLines = wrap(item.getDescription(), 52);
+            for (int idx = 0; idx < descLines.size(); idx++) {
+                String line = String.format("         %s %-52s %10s",
+                        idx == 0 ? "•" : " ",
+                        descLines.get(idx),
+                        idx == 0 ? formatAmount(item.getAmount()) : "");
+                writeText(state, line, FONT_COURIER);
+            }
+            writeInvoiceSection(state, item.getInvoices());
+        }
+    }
+
+    private void writeInvoiceSection(PageState state, List<AfterEventInvoiceDto> invoices) throws IOException {
+        if (invoices == null || invoices.isEmpty()) {
+            return;
+        }
+        writeText(state, "         Invoices", FONT_HELVETICA_BOLD);
+        for (AfterEventInvoiceDto invoice : invoices) {
+            if (invoice == null || invoice.getUrl() == null || invoice.getUrl().isBlank()) {
+                continue;
+            }
+            String filename = filenameFromUrl(invoice.getUrl());
+            if (filename == null) {
+                continue;
+            }
+            if (isPdf(filename)) {
+                writeText(state, String.format("         • Invoice PDF: %s", filename), FONT_COURIER);
+                if (invoice.getDescription() != null && !invoice.getDescription().isBlank()) {
+                    writeWrappedWithPrefix(state, "           Notes: ", invoice.getDescription(), 88);
+                }
+                continue;
+            }
+            try {
+                byte[] imageBytes = readAfterEventBytes(invoice.getUrl());
+                if (imageBytes == null || imageBytes.length == 0) {
+                    continue;
+                }
+                PDImageXObject image = createImageXObject(state.document, imageBytes);
+                float maxWidth = state.page.getMediaBox().getWidth() - (2 * MARGIN);
+                float scale = Math.min(1f, maxWidth / image.getWidth());
+                float displayWidth = image.getWidth() * scale;
+                float displayHeight = image.getHeight() * scale;
+                ensureSpace(state, displayHeight + LINE_HEIGHT);
+                state.stream.drawImage(image, MARGIN, state.y - displayHeight, displayWidth, displayHeight);
+                state.y -= (displayHeight + LINE_HEIGHT);
+                if (invoice.getDescription() != null && !invoice.getDescription().isBlank()) {
+                    writeWrappedWithPrefix(state, "Description: ", invoice.getDescription(), 90);
+                }
+            } catch (IOException | IllegalArgumentException ex) {
+                writeText(state, "         • Unable to load invoice image", FONT_COURIER);
+            }
+        }
+    }
+
+    private void writeAfterEventVariance(PageState state, SubEvent subEvent) throws IOException {
+        String status = subEvent.getAfterEventBudgetStatus();
+        if (status == null || status.isBlank()) {
+            return;
+        }
+        String label;
+        if ("OVER".equalsIgnoreCase(status)) {
+            label = "Over budget";
+        } else if ("UNDER".equalsIgnoreCase(status)) {
+            label = "Under budget";
+        } else {
+            label = "On budget";
+        }
+        String amount = subEvent.getAfterEventBudgetDelta() == null ? "" : formatAmount(subEvent.getAfterEventBudgetDelta());
+        if (amount.isBlank()) {
+            writeText(state, String.format("Budget status: %s", label), FONT_HELVETICA_BOLD);
+        } else {
+            writeText(state, String.format("Budget status: %s by %s", label, amount), FONT_HELVETICA_BOLD);
+        }
+    }
+
+    private void writeAfterEventImages(PageState state, List<AfterEventImageDto> images) throws IOException {
+        if (images == null || images.isEmpty()) {
+            return;
+        }
+        writeText(state, "Event images", FONT_HELVETICA_BOLD);
+        for (AfterEventImageDto imageDto : images) {
+            if (imageDto == null || imageDto.getUrl() == null || imageDto.getUrl().isBlank()) {
+                continue;
+            }
+            try {
+                byte[] imageBytes = readAfterEventBytes(imageDto.getUrl());
+                if (imageBytes == null || imageBytes.length == 0) {
+                    continue;
+                }
+                PDImageXObject image = createImageXObject(state.document, imageBytes);
+                float maxWidth = state.page.getMediaBox().getWidth() - (2 * MARGIN);
+                float scale = Math.min(1f, maxWidth / image.getWidth());
+                float displayWidth = image.getWidth() * scale;
+                float displayHeight = image.getHeight() * scale;
+                ensureSpace(state, displayHeight + LINE_HEIGHT);
+                state.stream.drawImage(image, MARGIN, state.y - displayHeight, displayWidth, displayHeight);
+                state.y -= (displayHeight + LINE_HEIGHT);
+                if (imageDto.getDescription() != null && !imageDto.getDescription().isBlank()) {
+                    writeWrappedWithPrefix(state, "Description: ", imageDto.getDescription(), 90);
+                }
+            } catch (IOException | IllegalArgumentException ex) {
+                writeText(state, "         • Unable to load after-event image", FONT_COURIER);
+            }
+        }
+        writeText(state, " ");
+    }
+
     private byte[] readPhotoBytes(String url) {
+        String filename = filenameFromUrl(url);
+        if (filename == null) {
+            return null;
+        }
+        return budgetPhotoStorageService.loadBytes(filename);
+    }
+
+    private byte[] readAfterEventBytes(String url) {
+        String filename = filenameFromUrl(url);
+        if (filename == null) {
+            return null;
+        }
+        return afterEventFileStorageService.loadBytes(filename);
+    }
+
+    private String filenameFromUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return null;
+        }
         String filename = url.substring(url.lastIndexOf('/') + 1);
         if (filename.isBlank()) {
             return null;
         }
-        return budgetPhotoStorageService.loadBytes(filename);
+        return filename;
+    }
+
+    private boolean isPdf(String filename) {
+        return filename.toLowerCase().endsWith(".pdf");
     }
 
     private PDImageXObject createImageXObject(PDDocument document, byte[] imageBytes) throws IOException {
@@ -266,6 +462,17 @@ public class BudgetReportService {
             return total;
         }
         for (BudgetItemDto item : items) {
+            total = total.add(item.getAmount() == null ? BigDecimal.ZERO : item.getAmount());
+        }
+        return total;
+    }
+
+    private BigDecimal calculateAfterEventTotal(List<AfterEventItemDto> items) {
+        BigDecimal total = BigDecimal.ZERO;
+        if (items == null) {
+            return total;
+        }
+        for (AfterEventItemDto item : items) {
             total = total.add(item.getAmount() == null ? BigDecimal.ZERO : item.getAmount());
         }
         return total;

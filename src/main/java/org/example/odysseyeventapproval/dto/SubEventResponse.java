@@ -12,6 +12,10 @@ public class SubEventResponse {
     private List<BudgetItemDto> budgetItems;
     private List<BudgetItemDto> inflowItems;
     private List<BudgetPhotoDto.BudgetPhotoItem> budgetPhotos;
+    private List<AfterEventItemDto> afterEventItems;
+    private List<AfterEventImageDto> afterEventImages;
+    private String afterEventBudgetStatus;
+    private java.math.BigDecimal afterEventBudgetDelta;
     private Long clubId;
     private String clubName;
     private String pocUsername;
@@ -31,6 +35,10 @@ public class SubEventResponse {
         response.budgetItems = BudgetItemDto.parse(subEvent.getBudgetBreakdown());
         response.inflowItems = BudgetItemDto.parse(subEvent.getInflowBreakdown());
         response.budgetPhotos = BudgetPhotoDto.parse(subEvent.getBudgetPhotos());
+        response.afterEventItems = AfterEventItemDto.parse(subEvent.getAfterEventItemsJson());
+        response.afterEventImages = AfterEventImageDto.parse(subEvent.getAfterEventImagesJson());
+        response.afterEventBudgetStatus = subEvent.getAfterEventBudgetStatus();
+        response.afterEventBudgetDelta = subEvent.getAfterEventBudgetDelta();
         response.clubId = subEvent.getClub().getId();
         response.clubName = subEvent.getClub().getName();
         response.pocUsername = subEvent.getPoc().getUsername();
@@ -69,6 +77,22 @@ public class SubEventResponse {
 
     public List<BudgetPhotoDto.BudgetPhotoItem> getBudgetPhotos() {
         return budgetPhotos;
+    }
+
+    public List<AfterEventItemDto> getAfterEventItems() {
+        return afterEventItems;
+    }
+
+    public List<AfterEventImageDto> getAfterEventImages() {
+        return afterEventImages;
+    }
+
+    public String getAfterEventBudgetStatus() {
+        return afterEventBudgetStatus;
+    }
+
+    public java.math.BigDecimal getAfterEventBudgetDelta() {
+        return afterEventBudgetDelta;
     }
 
     public Long getClubId() {

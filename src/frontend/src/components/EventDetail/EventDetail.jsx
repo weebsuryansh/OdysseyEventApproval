@@ -3,12 +3,30 @@ import Banner from '../Banner/Banner'
 import EventStatusPill from '../EventStatusPill/EventStatusPill'
 import PhotoUploadModal from '../PhotoUploadModal/PhotoUploadModal'
 import { api, downloadFile, resolveApiUrl, uploadFiles } from '../../services/api'
-import { CHROMIUM_IMAGE_ACCEPT, filterChromiumImages } from '../../utils/fileValidation'
+import { CHROMIUM_IMAGE_ACCEPT, INVOICE_FILE_ACCEPT, filterChromiumImages, filterInvoiceFiles } from '../../utils/fileValidation'
 import './EventDetail.scss'
 
 const EMPTY_BUDGET_ITEM = { description: '', amount: '' }
 const createBudgetItem = () => ({ ...EMPTY_BUDGET_ITEM })
 const createInflowItem = () => ({ ...EMPTY_BUDGET_ITEM })
+const EMPTY_AFTER_EVENT_ITEM = { description: '', amount: '', invoices: [] }
+const createAfterEventItem = () => ({ ...EMPTY_AFTER_EVENT_ITEM })
+const normalizeAfterEventDraft = (subEvent) => ({
+  items: (subEvent?.afterEventItems || []).map((item) => ({
+    description: item?.description || '',
+    amount: item?.amount ?? '',
+    invoices: (item?.invoices || []).map((invoice) => ({
+      url: invoice?.url || '',
+      description: invoice?.description || '',
+    })),
+  })),
+  images: (subEvent?.afterEventImages || []).map((image) => ({
+    url: image?.url || '',
+    description: image?.description || '',
+  })),
+  budgetStatus: subEvent?.afterEventBudgetStatus || '',
+  budgetDelta: subEvent?.afterEventBudgetDelta ?? '',
+})
 const createSubEvent = () => ({
   name: '',
   clubId: '',
@@ -30,6 +48,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
   const [working, setWorking] = useState(false)
   const [downloadWorking, setDownloadWorking] = useState(false)
   const [inflowWorking, setInflowWorking] = useState(false)
+  const [postEventWorking, setPostEventWorking] = useState(false)
   const [subEventWorkingId, setSubEventWorkingId] = useState(null)
   const [clubs, setClubs] = useState([])
   const [newSubEvent, setNewSubEvent] = useState(createSubEvent())
@@ -37,10 +56,28 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
   const [showAddSubEvent, setShowAddSubEvent] = useState(false)
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [pocSuggestions, setPocSuggestions] = useState([])
+  const [afterEventDrafts, setAfterEventDrafts] = useState({})
+  const [afterEventMessage, setAfterEventMessage] = useState({ type: '', text: '' })
+  const [afterEventSavingId, setAfterEventSavingId] = useState(null)
+  const [afterEventUpload, setAfterEventUpload] = useState({
+    open: false,
+    kind: '',
+    subEventId: null,
+    itemIndex: null,
+  })
 
   const canAct = ['SA_OFFICE', 'FACULTY_COORDINATOR', 'DEAN'].includes(user?.role) && !readOnly
   const isStudent = user?.role === 'STUDENT' && !readOnly
   const canEditSubEvents = isStudent
+  const canEditAfterEvent = isStudent && event?.stage === 'APPROVED'
+  const showAfterEventSection =
+    event?.stage === 'APPROVED' ||
+    event?.subEvents?.some(
+      (sub) =>
+        (sub?.afterEventItems?.length ?? 0) > 0 ||
+        (sub?.afterEventImages?.length ?? 0) > 0 ||
+        sub?.afterEventBudgetStatus,
+    )
 
   const calcTotal = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
   const formatAmount = (value) => Number(value || 0).toFixed(2)
@@ -67,6 +104,17 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
       try {
         const data = await api(`/api/events/${eventId}`)
         setEvent(data)
+        const drafts = {}
+        ;(data.subEvents || []).forEach((sub) => {
+          const normalized = normalizeAfterEventDraft(sub)
+          drafts[sub.id] = {
+            items: normalized.items.length ? normalized.items : [createAfterEventItem()],
+            images: normalized.images,
+            budgetStatus: normalized.budgetStatus,
+            budgetDelta: normalized.budgetDelta,
+          }
+        })
+        setAfterEventDrafts(drafts)
         setRemark('')
         setShowAddSubEvent(false)
       } catch (err) {
@@ -159,6 +207,20 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
     }
   }
 
+  const handlePostEventDownload = async () => {
+    if (!event) return
+    setPostEventWorking(true)
+    setMessage({ type: '', text: '' })
+    try {
+      await downloadFile(`/api/events/${event.id}/post-event.pdf`, `event-${event.id}-post-event.pdf`)
+      setMessage({ type: 'success', text: 'Post-event document downloaded.' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Could not download post-event document.' })
+    } finally {
+      setPostEventWorking(false)
+    }
+  }
+
   const pill = (label, value) => (
     <span className="pill muted-pill" key={label}>
       <strong>{label}:</strong> {value}
@@ -190,6 +252,197 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
 
   const updateNewSubEvent = (field, value) => {
     setNewSubEvent((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const updateAfterEventDraft = (subEventId, updater) => {
+    setAfterEventDrafts((prev) => {
+      const current = prev[subEventId] || { items: [createAfterEventItem()], images: [], budgetStatus: '', budgetDelta: '' }
+      const next = updater(current)
+      return { ...prev, [subEventId]: next }
+    })
+  }
+
+  const updateAfterEventItem = (subEventId, index, field, value) => {
+    updateAfterEventDraft(subEventId, (current) => {
+      const items = [...(current.items || [])]
+      items[index] = { ...items[index], [field]: value }
+      return { ...current, items }
+    })
+  }
+
+  const addAfterEventItem = (subEventId) => {
+    updateAfterEventDraft(subEventId, (current) => ({
+      ...current,
+      items: [...(current.items || []), createAfterEventItem()],
+    }))
+  }
+
+  const removeAfterEventItem = (subEventId, index) => {
+    updateAfterEventDraft(subEventId, (current) => ({
+      ...current,
+      items: (current.items || []).filter((_, idx) => idx !== index),
+    }))
+  }
+
+  const updateInvoiceDescription = (subEventId, itemIndex, invoiceIndex, value) => {
+    updateAfterEventDraft(subEventId, (current) => {
+      const items = [...(current.items || [])]
+      const invoices = [...(items[itemIndex]?.invoices || [])]
+      invoices[invoiceIndex] = { ...invoices[invoiceIndex], description: value }
+      items[itemIndex] = { ...items[itemIndex], invoices }
+      return { ...current, items }
+    })
+  }
+
+  const removeInvoice = (subEventId, itemIndex, invoiceIndex) => {
+    updateAfterEventDraft(subEventId, (current) => {
+      const items = [...(current.items || [])]
+      const invoices = [...(items[itemIndex]?.invoices || [])].filter((_, idx) => idx !== invoiceIndex)
+      items[itemIndex] = { ...items[itemIndex], invoices }
+      return { ...current, items }
+    })
+  }
+
+  const addInvoiceFiles = async (files) => {
+    if (afterEventUpload.subEventId == null || afterEventUpload.itemIndex == null) return
+    const { accepted, rejected } = filterInvoiceFiles(files)
+    if (rejected.length) {
+      setAfterEventMessage({
+        type: 'error',
+        text: 'Some files were skipped. Please upload PDF or image invoices only.',
+      })
+    }
+    if (!accepted.length) return
+    try {
+      const uploads = await uploadFiles('/api/after-event-files', accepted)
+      updateAfterEventDraft(afterEventUpload.subEventId, (current) => {
+        const items = [...(current.items || [])]
+        const invoices = [...(items[afterEventUpload.itemIndex]?.invoices || [])]
+        uploads.forEach((url) => invoices.push({ url, description: '' }))
+        items[afterEventUpload.itemIndex] = { ...items[afterEventUpload.itemIndex], invoices }
+        return { ...current, items }
+      })
+      setAfterEventMessage({ type: 'success', text: 'Invoice files uploaded.' })
+    } catch (err) {
+      setAfterEventMessage({ type: 'error', text: err.message || 'Could not upload invoice files.' })
+    }
+  }
+
+  const updateAfterEventImage = (subEventId, index, value) => {
+    updateAfterEventDraft(subEventId, (current) => {
+      const images = [...(current.images || [])]
+      images[index] = { ...images[index], description: value }
+      return { ...current, images }
+    })
+  }
+
+  const removeAfterEventImage = (subEventId, index) => {
+    updateAfterEventDraft(subEventId, (current) => ({
+      ...current,
+      images: (current.images || []).filter((_, idx) => idx !== index),
+    }))
+  }
+
+  const addAfterEventImages = async (files) => {
+    if (afterEventUpload.subEventId == null) return
+    const { accepted, rejected } = filterChromiumImages(files)
+    if (rejected.length) {
+      setAfterEventMessage({
+        type: 'error',
+        text: 'Some files were skipped. Please upload image files only.',
+      })
+    }
+    if (!accepted.length) return
+    try {
+      const uploads = await uploadFiles('/api/after-event-files', accepted)
+      updateAfterEventDraft(afterEventUpload.subEventId, (current) => ({
+        ...current,
+        images: [...(current.images || []), ...uploads.map((url) => ({ url, description: '' }))],
+      }))
+      setAfterEventMessage({ type: 'success', text: 'Event photos uploaded.' })
+    } catch (err) {
+      setAfterEventMessage({ type: 'error', text: err.message || 'Could not upload event photos.' })
+    }
+  }
+
+  const updateBudgetStatus = (subEventId, value) => {
+    updateAfterEventDraft(subEventId, (current) => ({
+      ...current,
+      budgetStatus: value,
+      budgetDelta: value === 'ON' ? '' : current.budgetDelta,
+    }))
+  }
+
+  const updateBudgetDelta = (subEventId, value) => {
+    updateAfterEventDraft(subEventId, (current) => ({ ...current, budgetDelta: value }))
+  }
+
+  const saveAfterEventDetails = async (subEventId) => {
+    if (!event) return
+    setAfterEventMessage({ type: '', text: '' })
+    const draft = afterEventDrafts[subEventId] || { items: [], images: [], budgetStatus: '', budgetDelta: '' }
+    const trimmedItems = (draft.items || []).filter((item) => item.description || item.amount || item.invoices?.length)
+    if (trimmedItems.length === 0) {
+      setAfterEventMessage({ type: 'error', text: 'Please add at least one expense item.' })
+      return
+    }
+    for (const [index, item] of trimmedItems.entries()) {
+      if (!item.description?.trim()) {
+        setAfterEventMessage({ type: 'error', text: `Expense item #${index + 1} needs a description.` })
+        return
+      }
+      if (!item.amount || Number(item.amount) <= 0) {
+        setAfterEventMessage({ type: 'error', text: `Expense item #${index + 1} needs a valid amount.` })
+        return
+      }
+      for (const [invoiceIndex, invoice] of (item.invoices || []).entries()) {
+        if (!invoice.description?.trim()) {
+          setAfterEventMessage({
+            type: 'error',
+            text: `Invoice #${invoiceIndex + 1} for item #${index + 1} needs a description.`,
+          })
+          return
+        }
+      }
+    }
+    if (draft.budgetStatus && draft.budgetStatus !== 'ON' && (!draft.budgetDelta || Number(draft.budgetDelta) <= 0)) {
+      setAfterEventMessage({ type: 'error', text: 'Please enter a budget variance amount.' })
+      return
+    }
+    setAfterEventSavingId(subEventId)
+    try {
+      await api(`/api/sub-events/${subEventId}/after-event`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          items: trimmedItems.map((item) => ({
+            description: item.description,
+            amount: Number(item.amount),
+            invoices: item.invoices || [],
+          })),
+          images: draft.images || [],
+          budgetStatus: draft.budgetStatus || null,
+          budgetDelta: draft.budgetStatus === 'ON' || !draft.budgetStatus ? null : Number(draft.budgetDelta),
+        }),
+      })
+      const refreshed = await api(`/api/events/${event.id}`)
+      setEvent(refreshed)
+      const drafts = {}
+      ;(refreshed.subEvents || []).forEach((sub) => {
+        const normalized = normalizeAfterEventDraft(sub)
+        drafts[sub.id] = {
+          items: normalized.items.length ? normalized.items : [createAfterEventItem()],
+          images: normalized.images,
+          budgetStatus: normalized.budgetStatus,
+          budgetDelta: normalized.budgetDelta,
+        }
+      })
+      setAfterEventDrafts(drafts)
+      setAfterEventMessage({ type: 'success', text: 'After-event details saved.' })
+    } catch (err) {
+      setAfterEventMessage({ type: 'error', text: err.message || 'Could not save after-event details.' })
+    } finally {
+      setAfterEventSavingId(null)
+    }
   }
 
   const updateNewBudgetItem = (index, field, value) => {
@@ -338,6 +591,14 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
     }
   }
 
+  const afterEventDraftFor = (subEventId) =>
+    afterEventDrafts[subEventId] || { items: [createAfterEventItem()], images: [], budgetStatus: '', budgetDelta: '' }
+
+  const isImageFile = (url = '') => {
+    const lower = url.toLowerCase()
+    return ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.svg'].some((ext) => lower.includes(ext))
+  }
+
   return (
     <div className="event-detail card-surface">
       <div className="detail-header">
@@ -362,6 +623,11 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
           <button className="ghost" onClick={handleInflowOutflowDownload} disabled={inflowWorking || !event}>
             {inflowWorking ? 'Preparing document...' : 'Download inflow/outflow document'}
           </button>
+          {event?.stage === 'APPROVED' && (
+            <button className="ghost" onClick={handlePostEventDownload} disabled={postEventWorking || !event}>
+              {postEventWorking ? 'Preparing document...' : 'Download post-event document'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -687,6 +953,250 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
             </section>
           )}
 
+          {showAfterEventSection && (
+            <section className="after-event card-surface">
+              <div className="section-header">
+                <div>
+                  <p className="muted">Share expenses, invoices, and photos from the completed event.</p>
+                  <h2>After-event details</h2>
+                </div>
+              </div>
+              <Banner status={afterEventMessage} />
+              <div className="after-event__grid">
+                {event?.subEvents?.map((sub) => {
+                  const draft = afterEventDraftFor(sub.id)
+                  const items = canEditAfterEvent ? draft.items : sub.afterEventItems || []
+                  const images = canEditAfterEvent ? draft.images : sub.afterEventImages || []
+                  const budgetStatus = canEditAfterEvent ? draft.budgetStatus : sub.afterEventBudgetStatus
+                  const budgetDelta = canEditAfterEvent ? draft.budgetDelta : sub.afterEventBudgetDelta
+                  return (
+                    <div key={`after-${sub.id}`} className="after-event__subevent">
+                      <div className="after-event__subheader">
+                        <div>
+                          <p className="muted">Sub-event</p>
+                          <h3>{sub.name}</h3>
+                          <p className="muted">Club: {sub.clubName}</p>
+                        </div>
+                        {canEditAfterEvent && (
+                          <div className="after-event__actions">
+                            <button type="button" className="ghost compact" onClick={() => addAfterEventItem(sub.id)}>
+                              + Add expense
+                            </button>
+                            <button
+                              type="button"
+                              className="primary"
+                              onClick={() => saveAfterEventDetails(sub.id)}
+                              disabled={afterEventSavingId === sub.id}
+                            >
+                              {afterEventSavingId === sub.id ? 'Saving...' : 'Save details'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="after-event__items">
+                        {items?.length ? (
+                          items.map((item, index) => (
+                            <div key={`after-item-${sub.id}-${index}`} className="after-event__item">
+                              <div className="after-event__row">
+                                {canEditAfterEvent ? (
+                                  <>
+                                    <input
+                                      placeholder="Expense description"
+                                      value={item.description || ''}
+                                      onChange={(e) => updateAfterEventItem(sub.id, index, 'description', e.target.value)}
+                                    />
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      placeholder="Amount"
+                                      value={item.amount || ''}
+                                      onChange={(e) => updateAfterEventItem(sub.id, index, 'amount', e.target.value)}
+                                    />
+                                    {items.length > 1 && (
+                                      <button
+                                        type="button"
+                                        className="ghost compact"
+                                        onClick={() => removeAfterEventItem(sub.id, index)}
+                                      >
+                                        Remove
+                                      </button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="budget-table">
+                                    <div className="budget-table__header">
+                                      <span>Description</span>
+                                      <span>Amount</span>
+                                    </div>
+                                    <div className="budget-table__row">
+                                      <span>{item.description}</span>
+                                      <span>₹{Number(item.amount || 0).toFixed(2)}</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="after-event__invoices">
+                                <div className="after-event__header">
+                                  <strong>Invoices</strong>
+                                  {canEditAfterEvent && (
+                                    <button
+                                      type="button"
+                                      className="ghost compact"
+                                      onClick={() =>
+                                        setAfterEventUpload({
+                                          open: true,
+                                          kind: 'invoice',
+                                          subEventId: sub.id,
+                                          itemIndex: index,
+                                        })
+                                      }
+                                    >
+                                      + Upload invoices
+                                    </button>
+                                  )}
+                                </div>
+                                {item.invoices?.length ? (
+                                  <div className="after-event__invoice-list">
+                                    {item.invoices.map((invoice, invoiceIndex) => (
+                                      <div key={`invoice-${sub.id}-${index}-${invoiceIndex}`} className="after-event__invoice">
+                                        <a href={resolveApiUrl(invoice.url)} target="_blank" rel="noreferrer">
+                                          {invoice.url?.split('/').pop() || `Invoice ${invoiceIndex + 1}`}
+                                        </a>
+                                        {isImageFile(invoice.url) && !canEditAfterEvent && (
+                                          <img src={resolveApiUrl(invoice.url)} alt={`Invoice ${invoiceIndex + 1}`} />
+                                        )}
+                                        {canEditAfterEvent ? (
+                                          <>
+                                            <input
+                                              type="text"
+                                              placeholder="Invoice description"
+                                              value={invoice.description || ''}
+                                              onChange={(e) =>
+                                                updateInvoiceDescription(sub.id, index, invoiceIndex, e.target.value)
+                                              }
+                                            />
+                                            <button
+                                              type="button"
+                                              className="ghost compact"
+                                              onClick={() => removeInvoice(sub.id, index, invoiceIndex)}
+                                            >
+                                              Remove
+                                            </button>
+                                          </>
+                                        ) : (
+                                          invoice.description && <p className="muted">{invoice.description}</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="muted">No invoices uploaded yet.</p>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="muted">No expenses added yet.</p>
+                        )}
+                      </div>
+
+                      <div className="after-event__budget">
+                        <div className="after-event__header">
+                          <strong>Budget variance</strong>
+                        </div>
+                        {canEditAfterEvent ? (
+                          <div className="after-event__row">
+                            <select
+                              value={budgetStatus || ''}
+                              onChange={(e) => updateBudgetStatus(sub.id, e.target.value)}
+                            >
+                              <option value="">Select status</option>
+                              <option value="OVER">Over budget</option>
+                              <option value="UNDER">Under budget</option>
+                              <option value="ON">On budget</option>
+                            </select>
+                            {budgetStatus && budgetStatus !== 'ON' && (
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Amount"
+                                value={budgetDelta || ''}
+                                onChange={(e) => updateBudgetDelta(sub.id, e.target.value)}
+                              />
+                            )}
+                          </div>
+                        ) : budgetStatus ? (
+                          <p className="muted">
+                            {budgetStatus === 'OVER' && `Over budget by ₹${Number(budgetDelta || 0).toFixed(2)}`}
+                            {budgetStatus === 'UNDER' && `Under budget by ₹${Number(budgetDelta || 0).toFixed(2)}`}
+                            {budgetStatus === 'ON' && 'On budget'}
+                          </p>
+                        ) : (
+                          <p className="muted">No budget variance noted.</p>
+                        )}
+                      </div>
+
+                      <div className="after-event__photos">
+                        <div className="after-event__header">
+                          <strong>Event images</strong>
+                          {canEditAfterEvent && (
+                            <button
+                              type="button"
+                              className="ghost compact"
+                              onClick={() =>
+                                setAfterEventUpload({
+                                  open: true,
+                                  kind: 'image',
+                                  subEventId: sub.id,
+                                  itemIndex: null,
+                                })
+                              }
+                            >
+                              + Upload photos
+                            </button>
+                          )}
+                        </div>
+                        {images?.length ? (
+                          <div className="budget-photo-grid__items">
+                            {images.map((photo, index) => (
+                              <div key={`after-photo-${sub.id}-${index}`} className="budget-photo-grid__item">
+                                <img src={resolveApiUrl(photo.url)} alt={`Event photo ${index + 1}`} />
+                                {canEditAfterEvent ? (
+                                  <>
+                                    <input
+                                      type="text"
+                                      placeholder="Add a short description"
+                                      value={photo.description || ''}
+                                      onChange={(e) => updateAfterEventImage(sub.id, index, e.target.value)}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="ghost compact"
+                                      onClick={() => removeAfterEventImage(sub.id, index)}
+                                    >
+                                      Remove
+                                    </button>
+                                  </>
+                                ) : (
+                                  photo.description && <p className="muted">{photo.description}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="muted">No event photos uploaded yet.</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
           {canAct && (
             <section className="decision-panel">
               <div className="panel-header">
@@ -724,10 +1234,38 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
         title="Upload budget photos"
         description="Drag and drop supported images or browse your device."
         accept={CHROMIUM_IMAGE_ACCEPT}
+        dropLabel="Drag and drop photos here"
+        buttonLabel="Browse photos"
         onClose={() => setUploadModalOpen(false)}
         onFilesSelected={(files) => {
           addNewBudgetPhotos(files)
           setUploadModalOpen(false)
+        }}
+      />
+      <PhotoUploadModal
+        open={afterEventUpload.open && afterEventUpload.kind === 'invoice'}
+        title="Upload invoices"
+        description="Drag and drop PDF or image invoices."
+        accept={INVOICE_FILE_ACCEPT}
+        dropLabel="Drag and drop invoices here"
+        buttonLabel="Browse invoices"
+        onClose={() => setAfterEventUpload({ open: false, kind: '', subEventId: null, itemIndex: null })}
+        onFilesSelected={(files) => {
+          addInvoiceFiles(files)
+          setAfterEventUpload({ open: false, kind: '', subEventId: null, itemIndex: null })
+        }}
+      />
+      <PhotoUploadModal
+        open={afterEventUpload.open && afterEventUpload.kind === 'image'}
+        title="Upload event photos"
+        description="Drag and drop event photos or browse your device."
+        accept={CHROMIUM_IMAGE_ACCEPT}
+        dropLabel="Drag and drop event photos here"
+        buttonLabel="Browse photos"
+        onClose={() => setAfterEventUpload({ open: false, kind: '', subEventId: null, itemIndex: null })}
+        onFilesSelected={(files) => {
+          addAfterEventImages(files)
+          setAfterEventUpload({ open: false, kind: '', subEventId: null, itemIndex: null })
         }}
       />
     </div>

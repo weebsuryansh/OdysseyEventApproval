@@ -152,6 +152,45 @@ public class EventService {
         return eventRepository.save(event);
     }
 
+    public SubEvent updateAfterEvent(User student, Long subEventId, AfterEventRequest request) {
+        SubEvent subEvent = subEventRepository.findById(subEventId).orElseThrow();
+        Event event = subEvent.getEvent();
+        if (!event.getStudent().getId().equals(student.getId())) {
+            throw new IllegalStateException("User cannot edit this event");
+        }
+        if (event.getStage() != EventStage.APPROVED) {
+            throw new IllegalStateException("After-event details can only be added once the event is approved");
+        }
+        List<AfterEventItemDto> items = request.getItems() == null ? List.of() : request.getItems();
+        List<AfterEventImageDto> images = request.getImages() == null ? List.of() : request.getImages();
+        subEvent.setAfterEventItemsJson(AfterEventItemDto.toJson(items));
+        subEvent.setAfterEventImagesJson(AfterEventImageDto.toJson(images));
+
+        String status = request.getBudgetStatus();
+        if (status != null) {
+            status = status.trim().toUpperCase();
+        }
+        if (status == null || status.isBlank()) {
+            subEvent.setAfterEventBudgetStatus(null);
+            subEvent.setAfterEventBudgetDelta(null);
+        } else if (status.equals("OVER") || status.equals("UNDER")) {
+            if (request.getBudgetDelta() == null || request.getBudgetDelta().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Please enter a positive budget variance amount");
+            }
+            subEvent.setAfterEventBudgetStatus(status);
+            subEvent.setAfterEventBudgetDelta(request.getBudgetDelta());
+        } else if (status.equals("ON")) {
+            subEvent.setAfterEventBudgetStatus("ON");
+            subEvent.setAfterEventBudgetDelta(null);
+        } else {
+            throw new IllegalArgumentException("Budget status must be OVER, UNDER, or ON");
+        }
+
+        event.touchUpdatedAt();
+        eventRepository.save(event);
+        return subEventRepository.save(subEvent);
+    }
+
     @Transactional
     public Event decide(User approver, Long eventId, DecisionRequest request) {
         Event event = eventRepository.findById(eventId).orElseThrow();

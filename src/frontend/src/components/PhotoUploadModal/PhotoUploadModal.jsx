@@ -1,7 +1,16 @@
 import { useRef, useState } from 'react'
 import './PhotoUploadModal.scss'
 
-function PhotoUploadModal({ open, title, description, accept, onClose, onFilesSelected }) {
+function PhotoUploadModal({
+  open,
+  title,
+  description,
+  accept,
+  dropLabel = 'Drag and drop files here',
+  buttonLabel = 'Browse files',
+  onClose,
+  onFilesSelected,
+}) {
   const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef(null)
 
@@ -40,10 +49,10 @@ function PhotoUploadModal({ open, title, description, accept, onClose, onFilesSe
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
         >
-          <p className="muted">{dragging ? 'Release to upload files' : 'Drag and drop photos here'}</p>
+          <p className="muted">{dragging ? 'Release to upload files' : dropLabel}</p>
           <span className="muted small-label">or</span>
           <button type="button" className="primary" onClick={() => fileInputRef.current?.click()}>
-            Browse files
+            {buttonLabel}
           </button>
           <input
             ref={fileInputRef}
