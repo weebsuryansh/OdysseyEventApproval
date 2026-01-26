@@ -145,7 +145,7 @@ public class EmailNotificationService {
                 .append("<p style=\"margin:0 0 10px;font-weight:700;color:#0f172a;\">Event details</p>")
                 .append("<table role=\"presentation\" style=\"width:100%;border-collapse:collapse;font-size:14px;color:#0f172a;\">")
                 .append(buildRow("Event", escapeHtml(event.getTitle())))
-                .append(buildRow("Stage", escapeHtml(event.getStage())))
+                .append(buildRow("Stage", String.valueOf(event.getStage())))
                 .append(buildRow("Decision by", escapeHtml(role)))
                 .append(buildRow("Decision", escapeHtml(decision)));
         if (remark != null && !remark.isBlank()) {
@@ -161,7 +161,7 @@ public class EmailNotificationService {
                 + "<table role=\"presentation\" style=\"width:100%;border-collapse:collapse;font-size:14px;color:#0f172a;\">"
                 + buildRow("Event", escapeHtml(event.getTitle()))
                 + buildRow("Created by", escapeHtml(event.getStudent().getDisplayName()))
-                + buildRow("Stage", escapeHtml(event.getStage()))
+                + buildRow("Stage", String.valueOf(event.getStage()))
                 + "</table></div>";
     }
 
@@ -173,7 +173,7 @@ public class EmailNotificationService {
                 + buildRow("Sub-event", escapeHtml(subEvent.getName()))
                 + buildRow("POC", escapeHtml(subEvent.getPocName()))
                 + buildRow("Decision", escapeHtml(accepted ? "ACCEPTED" : "DECLINED"))
-                + buildRow("Stage", escapeHtml(event.getStage()))
+                + buildRow("Stage", String.valueOf(event.getStage()))
                 + "</table></div>";
     }
 
