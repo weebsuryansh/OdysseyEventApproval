@@ -34,6 +34,7 @@ function AdminDashboard() {
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [downloadMessage, setDownloadMessage] = useState({ type: '', text: '' })
   const [downloadWorking, setDownloadWorking] = useState(false)
+  const [overrideWorking, setOverrideWorking] = useState(false)
   const [clubs, setClubs] = useState([])
   const [clubForm, setClubForm] = useState({ name: '' })
   const [clubMessage, setClubMessage] = useState({ type: '', text: '' })
@@ -115,9 +116,11 @@ function AdminDashboard() {
   const override = async (e) => {
     e.preventDefault()
     if (!selectedEvent) return
-    setOverrideMessage({ type: '', text: '' })
+    setOverrideMessage({ type: '', text: 'Applying override...' })
+    setOverrideWorking(true)
     if (status === 'REJECTED' && !remark.trim()) {
       setOverrideMessage({ type: 'error', text: 'Remark is required when rejecting.' })
+      setOverrideWorking(false)
       return
     }
     try {
@@ -133,6 +136,8 @@ function AdminDashboard() {
       loadEvents()
     } catch (err) {
       setOverrideMessage({ type: 'error', text: err.message || 'Override failed.' })
+    } finally {
+      setOverrideWorking(false)
     }
   }
 
@@ -449,7 +454,9 @@ function AdminDashboard() {
                     </label>
                     <Banner status={overrideMessage} />
                     <div className="actions">
-                      <button type="submit">Apply override</button>
+                      <button type="submit" disabled={overrideWorking}>
+                        {overrideWorking ? 'Applying...' : 'Apply override'}
+                      </button>
                     </div>
                   </form>
                 </div>
