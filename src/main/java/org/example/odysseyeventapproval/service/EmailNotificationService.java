@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class EmailNotificationService {
-    private static final String TEST_TARGET_EMAIL = "suryansh22519@iiitd.ac.in";
     private static final String FROM_EMAIL = "suryansh22519@iiitd.ac.in";
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotificationService.class);
 
@@ -107,7 +106,7 @@ public class EmailNotificationService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
             helper.setFrom(FROM_EMAIL);
-            helper.setTo(TEST_TARGET_EMAIL);
+            helper.setTo(intendedRecipient);
             helper.setSubject(subject);
             helper.setText(withIntendedRecipient(intendedRecipient, plainText), wrapEmailHtml(htmlBody, intendedRecipient));
             for (EmailAttachment attachment : attachments) {
@@ -115,7 +114,7 @@ public class EmailNotificationService {
             }
             mailSender.send(message);
         } catch (MailException | MessagingException ex) {
-            LOGGER.warn("Email delivery failed to {} (intended recipient {}).", TEST_TARGET_EMAIL, intendedRecipient, ex);
+            LOGGER.warn("Email delivery failed to {} (intended recipient {}).", intendedRecipient, intendedRecipient, ex);
         }
     }
 
@@ -281,7 +280,7 @@ public class EmailNotificationService {
                 + "<tr><td align=\"center\" style=\"padding:32px 16px;\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:640px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 10px 30px rgba(15,23,42,0.08);\">"
                 + "<tr><td style=\"background:#0f5560;color:#ffffff;padding:24px 28px;\">"
-                + "<p style=\"margin:0;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;\">Odyssey</p>"
+                + "<p style=\"margin:0;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;\">Events Portal</p>"
                 + "<h1 style=\"margin:6px 0 0;font-size:22px;\">Event Approval Update</h1>"
                 + "</td></tr>"
                 + "<tr><td style=\"padding:24px 28px;\">"
