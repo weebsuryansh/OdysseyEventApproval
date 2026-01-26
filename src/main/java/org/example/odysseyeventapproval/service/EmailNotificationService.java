@@ -7,6 +7,7 @@ import org.example.odysseyeventapproval.model.User;
 import org.example.odysseyeventapproval.model.UserRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,9 +26,11 @@ public class EmailNotificationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotificationService.class);
 
     private final JavaMailSender mailSender;
+    private final BudgetReportService budgetReportService;
 
-    public EmailNotificationService(JavaMailSender mailSender) {
+    public EmailNotificationService(JavaMailSender mailSender, BudgetReportService budgetReportService) {
         this.mailSender = mailSender;
+        this.budgetReportService = budgetReportService;
     }
 
     public void notifyStudentOnDecision(Event event, User student, UserRole approverRole, DecisionStatus decisionStatus, String remark) {
@@ -56,7 +61,7 @@ public class EmailNotificationService {
                 .append("\nSub-events:\n").append(formatSubEvents(event));
 
         String htmlBody = buildApproverHtml(event);
-        sendEmail(approver.getEmail(), subject, body.toString(), htmlBody);
+        sendEmail(approver.getEmail(), subject, body.toString(), htmlBody, buildApproverAttachments(event));
     }
 
     public void notifyStudentOnPocDecision(Event event, User student, SubEvent subEvent, boolean accepted) {
@@ -94,6 +99,10 @@ public class EmailNotificationService {
     }
 
     private void sendEmail(String intendedRecipient, String subject, String plainText, String htmlBody) {
+        sendEmail(intendedRecipient, subject, plainText, htmlBody, List.of());
+    }
+
+    private void sendEmail(String intendedRecipient, String subject, String plainText, String htmlBody, List<EmailAttachment> attachments) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
@@ -101,6 +110,9 @@ public class EmailNotificationService {
             helper.setTo(TEST_TARGET_EMAIL);
             helper.setSubject(subject);
             helper.setText(withIntendedRecipient(intendedRecipient, plainText), wrapEmailHtml(htmlBody, intendedRecipient));
+            for (EmailAttachment attachment : attachments) {
+                helper.addAttachment(attachment.filename(), new ByteArrayResource(attachment.data()), attachment.contentType());
+            }
             mailSender.send(message);
         } catch (MailException | MessagingException ex) {
             LOGGER.warn("Email delivery failed to {} (intended recipient {}).", TEST_TARGET_EMAIL, intendedRecipient, ex);
@@ -127,6 +139,28 @@ public class EmailNotificationService {
                 .append(buildDescriptionSection(event.getDescription()))
                 .append(buildSubEventSection(event));
         return wrapContent("Approval needed", "Event action required", body.toString());
+    }
+
+    private List<EmailAttachment> buildApproverAttachments(Event event) {
+        List<EmailAttachment> attachments = new ArrayList<>();
+        String eventId = event.getId() == null ? "unknown" : event.getId().toString();
+        try {
+            byte[] preEventReport = budgetReportService.generatePreEventReport(event);
+            attachments.add(new EmailAttachment(
+                    "event-" + eventId + "-pre-event.pdf",
+                    preEventReport,
+                    "application/pdf"
+            ));
+            byte[] inflowOutflowReport = budgetReportService.generateInflowOutflowReport(event);
+            attachments.add(new EmailAttachment(
+                    "event-" + eventId + "-inflow-outflow.pdf",
+                    inflowOutflowReport,
+                    "application/pdf"
+            ));
+        } catch (RuntimeException ex) {
+            LOGGER.warn("Unable to attach reports for event {}.", eventId, ex);
+        }
+        return attachments;
     }
 
     private String buildPocDecisionHtml(Event event, SubEvent subEvent, boolean accepted) {
@@ -280,5 +314,8 @@ public class EmailNotificationService {
             return text + "\n\nIntended recipient: (missing email on user)";
         }
         return text + "\n\nIntended recipient: " + intendedRecipient;
+    }
+
+    private record EmailAttachment(String filename, byte[] data, String contentType) {
     }
 }
