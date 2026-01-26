@@ -332,7 +332,7 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
 
   const decidePoc = async (id, accept) => {
     setPocWorkingId(id)
-    setPocMessage({ type: '', text: '' })
+    setPocMessage({ type: '', text: 'Submitting your response...' })
     try {
       const current = pocEdits[id]
       if (accept) {
@@ -494,7 +494,7 @@ function StudentDashboard({ onOpenEvent = () => {} }) {
                           disabled={pocWorkingId === req.subEventId}
                           onClick={() => decidePoc(req.subEventId, false)}
                         >
-                          Decline
+                          {pocWorkingId === req.subEventId ? 'Sending...' : 'Decline'}
                         </button>
                       </div>
                     </div>

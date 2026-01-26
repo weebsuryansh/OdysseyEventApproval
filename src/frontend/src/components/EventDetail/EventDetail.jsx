@@ -44,6 +44,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [decisionNotice, setDecisionNotice] = useState({ open: false, type: '', text: '' })
+  const [decisionMessage, setDecisionMessage] = useState({ type: '', text: '' })
   const [remark, setRemark] = useState('')
   const [working, setWorking] = useState(false)
   const [downloadWorking, setDownloadWorking] = useState(false)
@@ -139,9 +140,11 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
     if (!event) return
     setWorking(true)
     setDecisionNotice({ open: false, type: '', text: '' })
+    setDecisionMessage({ type: '', text: 'Submitting your decision...' })
     if (!approve && !remark.trim()) {
       setDecisionNotice({ open: true, type: 'error', text: 'Please add a remark before declining.' })
       setWorking(false)
+      setDecisionMessage({ type: '', text: '' })
       return
     }
     try {
@@ -157,6 +160,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
       setDecisionNotice({ open: true, type: 'error', text: err.message || 'Action failed. Please try again.' })
     } finally {
       setWorking(false)
+      setDecisionMessage({ type: '', text: '' })
     }
   }
 
@@ -164,6 +168,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
     if (!event) return
     setSubEventWorkingId(subEventId)
     setDecisionNotice({ open: false, type: '', text: '' })
+    setDecisionMessage({ type: '', text: 'Submitting your sub-event decision...' })
     try {
       await api(`/api/sub-events/${subEventId}/decision`, {
         method: 'POST',
@@ -176,6 +181,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
       setDecisionNotice({ open: true, type: 'error', text: err.message || 'Could not update sub-event status.' })
     } finally {
       setSubEventWorkingId(null)
+      setDecisionMessage({ type: '', text: '' })
     }
   }
 
@@ -753,7 +759,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                             disabled={subEventWorkingId === sub.id}
                             onClick={() => decideSubEvent(sub.id, true)}
                           >
-                            {subEventWorkingId === sub.id ? 'Working...' : 'Approve sub-event'}
+                            {subEventWorkingId === sub.id ? 'Submitting...' : 'Approve sub-event'}
                           </button>
                           <button
                             type="button"
@@ -761,7 +767,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                             disabled={subEventWorkingId === sub.id}
                             onClick={() => decideSubEvent(sub.id, false)}
                           >
-                            Decline sub-event
+                            {subEventWorkingId === sub.id ? 'Submitting...' : 'Decline sub-event'}
                           </button>
                         </div>
                       )}
@@ -1209,6 +1215,7 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                 <p className="muted">Approve or decline all sub-events before deciding on the overall event.</p>
               )}
               <p className="muted">Your decision: {stageLabel(eventDecisionStatus())}</p>
+              <Banner status={decisionMessage} />
               {eventDecisionStatus() === 'PENDING' && allSubEventsDecided && (
                 <>
                   <label>
@@ -1217,10 +1224,10 @@ function EventDetail({ eventId, user, onBack, readOnly = false }) {
                   </label>
                   <div className="actions">
                     <button onClick={() => decide(true)} disabled={working}>
-                      {working ? 'Working...' : 'Approve'}
+                      {working ? 'Submitting...' : 'Approve'}
                     </button>
                     <button className="danger" onClick={() => decide(false)} disabled={working}>
-                      Decline
+                      {working ? 'Submitting...' : 'Decline'}
                     </button>
                   </div>
                 </>
