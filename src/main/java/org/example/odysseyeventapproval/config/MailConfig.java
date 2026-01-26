@@ -18,16 +18,34 @@ public class MailConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(MailConfig.class);
 
     @Bean
-    public JavaMailSender javaMailSender(@Value("${spring.mail.host:}") String host,
-                                         @Value("${spring.mail.port:25}") int port) {
-        if (host == null || host.isBlank()) {
-            return new NoOpJavaMailSender();
-        }
-        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-        mailSender.setHost(host);
-        mailSender.setPort(port);
-        LOGGER.info("Spring.mail.host Configured");
-        return mailSender;
+    public JavaMailSender javaMailSender(
+            @Value("${spring.mail.host}") String host,
+            @Value("${spring.mail.port}") int port,
+            @Value("${spring.mail.username}") String username,
+            @Value("${spring.mail.password}") String password,
+            @Value("${spring.mail.properties.mail.smtp.auth:true}") boolean auth,
+            @Value("${spring.mail.properties.mail.smtp.starttls.enable:true}") boolean starttlsEnable,
+            @Value("${spring.mail.properties.mail.smtp.starttls.required:true}") boolean starttlsRequired,
+            @Value("${spring.mail.properties.mail.debug:false}") boolean debug
+    ) {
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        sender.setHost(host);
+        sender.setPort(port);
+        sender.setUsername(username);
+        sender.setPassword(password);
+
+        Properties p = sender.getJavaMailProperties();
+        p.put("mail.transport.protocol", "smtp");
+        p.put("mail.smtp.auth", String.valueOf(auth));
+        p.put("mail.smtp.starttls.enable", String.valueOf(starttlsEnable));
+        p.put("mail.smtp.starttls.required", String.valueOf(starttlsRequired));
+        p.put("mail.debug", String.valueOf(debug));
+
+        // IMPORTANT: don't enable SSL on 587
+        p.put("mail.smtp.ssl.enable", "false");
+
+        LOGGER.info("Mail sender configured for {}:{} with STARTTLS={}", host, port, starttlsEnable);
+        return sender;
     }
 
     private static final class NoOpJavaMailSender implements JavaMailSender {

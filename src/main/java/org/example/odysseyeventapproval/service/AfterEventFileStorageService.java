@@ -116,8 +116,6 @@ public class AfterEventFileStorageService {
             return Files.readAllBytes(file);
         } catch (IOException e) {
             throw new IllegalArgumentException("After-event file not found", e);
-        } catch (GeneralSecurityException e) {
-            throw new IllegalArgumentException("Unable to decrypt after-event file", e);
         }
     }
 
