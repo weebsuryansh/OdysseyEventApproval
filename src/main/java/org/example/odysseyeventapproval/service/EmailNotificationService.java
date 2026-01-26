@@ -102,6 +102,14 @@ public class EmailNotificationService {
     }
 
     private void sendEmail(String intendedRecipient, String subject, String plainText, String htmlBody, List<EmailAttachment> attachments) {
+        List<EmailAttachment> safeAttachments = attachments == null ? List.of() : List.copyOf(attachments);
+        Thread senderThread = new Thread(() -> sendEmailInternal(intendedRecipient, subject, plainText, htmlBody, safeAttachments));
+        senderThread.setName("email-sender-" + System.currentTimeMillis());
+        senderThread.setDaemon(true);
+        senderThread.start();
+    }
+
+    private void sendEmailInternal(String intendedRecipient, String subject, String plainText, String htmlBody, List<EmailAttachment> attachments) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
