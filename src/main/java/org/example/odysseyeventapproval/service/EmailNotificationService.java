@@ -13,10 +13,18 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PreDestroy;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,10 +34,12 @@ public class EmailNotificationService {
 
     private final JavaMailSender mailSender;
     private final BudgetReportService budgetReportService;
+    private final ExecutorService emailExecutor;
 
     public EmailNotificationService(JavaMailSender mailSender, BudgetReportService budgetReportService) {
         this.mailSender = mailSender;
         this.budgetReportService = budgetReportService;
+        this.emailExecutor = buildEmailExecutor();
     }
 
     public void notifyStudentOnDecision(Event event, User student, UserRole approverRole, DecisionStatus decisionStatus, String remark) {
@@ -103,10 +113,11 @@ public class EmailNotificationService {
 
     private void sendEmail(String intendedRecipient, String subject, String plainText, String htmlBody, List<EmailAttachment> attachments) {
         List<EmailAttachment> safeAttachments = attachments == null ? List.of() : List.copyOf(attachments);
-        Thread senderThread = new Thread(() -> sendEmailInternal(intendedRecipient, subject, plainText, htmlBody, safeAttachments));
-        senderThread.setName("email-sender-" + System.currentTimeMillis());
-        senderThread.setDaemon(true);
-        senderThread.start();
+        try {
+            emailExecutor.execute(() -> sendEmailSafely(intendedRecipient, subject, plainText, htmlBody, safeAttachments));
+        } catch (RejectedExecutionException ex) {
+            LOGGER.warn("Email delivery rejected for {} because the async queue is full.", intendedRecipient, ex);
+        }
     }
 
     private void sendEmailInternal(String intendedRecipient, String subject, String plainText, String htmlBody, List<EmailAttachment> attachments) {
@@ -124,6 +135,40 @@ public class EmailNotificationService {
         } catch (MailException | MessagingException ex) {
             LOGGER.warn("Email delivery failed to {} (intended recipient {}).", intendedRecipient, intendedRecipient, ex);
         }
+    }
+
+    private void sendEmailSafely(String intendedRecipient, String subject, String plainText, String htmlBody, List<EmailAttachment> attachments) {
+        try {
+            sendEmailInternal(intendedRecipient, subject, plainText, htmlBody, attachments);
+        } catch (RuntimeException ex) {
+            LOGGER.warn("Async email delivery failed for {}.", intendedRecipient, ex);
+        }
+    }
+
+    private ExecutorService buildEmailExecutor() {
+        int poolSize = 4;
+        int queueCapacity = 100;
+        AtomicInteger counter = new AtomicInteger(0);
+        ThreadFactory threadFactory = runnable -> {
+            Thread thread = new Thread(runnable);
+            thread.setName("email-sender-" + counter.incrementAndGet());
+            thread.setDaemon(false);
+            return thread;
+        };
+        return new ThreadPoolExecutor(
+                poolSize,
+                poolSize,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(queueCapacity),
+                threadFactory,
+                new ThreadPoolExecutor.AbortPolicy()
+        );
+    }
+
+    @PreDestroy
+    public void shutdownEmailExecutor() {
+        emailExecutor.shutdown();
     }
 
     private String buildDecisionHtml(Event event, UserRole approverRole, DecisionStatus decisionStatus, String remark) {
